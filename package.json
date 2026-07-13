@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "check-backup": "node scripts/check-backup.mjs",
+    "integrity-sweep": "node scripts/integrity-sweep.mjs"
   },
   "dependencies": {
     "archiver": "^7.0.1",

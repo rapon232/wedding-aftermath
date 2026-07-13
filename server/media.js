@@ -32,6 +32,28 @@ const fixName = (n) => {
 const cleanName = (n) =>
   String(n).replace(/[/\\]/g, '_').replace(/[\x00-\x1f]/g, '').trim().slice(0, 200) || 'upload';
 
+// --- Disk-space guard + per-guest upload rate limit ---
+// Both run before a file is accepted, so guests get a clear message instead of a
+// mysterious failure (full volume) or one person starving the NAS (flood).
+import { hasFreeSpace } from './maintenance.js';
+
+const uploadTimes = new Map(); // guestId -> [timestamps]
+
+function uploadGuard(req, res, next) {
+  if (!hasFreeSpace()) {
+    return res.status(507).json({ error: 'The gallery is full right now — please tell the couple.' });
+  }
+  const now = Date.now();
+  const cutoff = now - config.uploadRateWindowMs;
+  const times = (uploadTimes.get(req.guest.id) || []).filter((t) => t > cutoff);
+  if (times.length >= config.uploadRateMax) {
+    return res.status(429).json({ error: 'Whoa — that’s a lot at once. Give it a minute and keep going.' });
+  }
+  times.push(now);
+  uploadTimes.set(req.guest.id, times);
+  next();
+}
+
 function sha256File(p) {
   return new Promise((resolve, reject) => {
     const h = crypto.createHash('sha256');
@@ -94,7 +116,7 @@ export const mediaRouter = express.Router();
 
 // --- Simple path: one file per multipart request (client uses this under ~90 MB) ---
 
-mediaRouter.post('/api/upload', requireApi, upload.single('file'), async (req, res, next) => {
+mediaRouter.post('/api/upload', requireApi, uploadGuard, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) throw httpError(400, 'file required');
     const result = await finalizeUpload({
@@ -114,7 +136,7 @@ mediaRouter.post('/api/upload', requireApi, upload.single('file'), async (req, r
 
 const chunkSessions = new Map();
 
-mediaRouter.post('/api/upload/init', requireApi, (req, res) => {
+mediaRouter.post('/api/upload/init', requireApi, uploadGuard, (req, res) => {
   const name = cleanName(String(req.body?.name || ''));
   const size = Number(req.body?.size);
   if (!validExt(extOf(name))) return res.status(415).json({ error: `unsupported file type` });

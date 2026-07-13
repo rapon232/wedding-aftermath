@@ -29,6 +29,13 @@ export const config = {
   sessionMaxAgeMs: 180 * 24 * 60 * 60 * 1000,
   // Per-file upload cap: 2 GB
   maxFileBytes: 2 * 1024 * 1024 * 1024,
+  // Refuse uploads when the data volume has less than this free (default 1 GB).
+  minFreeBytes: Number(process.env.MIN_FREE_BYTES) || 1024 * 1024 * 1024,
+  // Per-guest upload throttle: max files started per rolling window.
+  uploadRateMax: Number(process.env.UPLOAD_RATE_MAX) || 400,
+  uploadRateWindowMs: (Number(process.env.UPLOAD_RATE_WINDOW_MIN) || 10) * 60 * 1000,
+  // Quieter request logging in tests.
+  logRequests: process.env.NODE_ENV !== 'test',
 };
 
 export const dirs = {

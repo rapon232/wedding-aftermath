@@ -61,6 +61,31 @@ Then add a Cloudflare tunnel ingress rule mapping
 **Backups**: everything the site knows lives in the `DATA_PATH` folder
 (originals, derived renditions, `db.sqlite`). Back up that one directory.
 
+### Data-safety jobs
+
+Run these on the NAS (or `docker compose exec aftermath …`):
+
+```bash
+DATA_DIR=/data node scripts/check-backup.mjs      # alerts if media count/bytes drop unexpectedly
+DATA_DIR=/data node scripts/integrity-sweep.mjs   # report DB↔files desyncs (--fix to repair)
+```
+
+Suggested cron on the NAS (daily backup verification):
+
+```cron
+0 3 * * *  cd /path/to/app && DATA_DIR=/data node scripts/check-backup.mjs >> /var/log/aftermath-backup.log 2>&1
+```
+
+An integrity sweep also runs automatically at container start, repairing any
+desync left by a crash mid-upload. Point an external uptime monitor
+(UptimeRobot, Cloudflare Health Check) at `/api/health` so a crashed container
+alerts you — it reports `{ ok, media, uptimeSec, diskFreeGb }`.
+
+Uploads are guarded: they’re refused with a friendly message when the volume is
+low on space (`MIN_FREE_BYTES`, default 1 GB) and rate-limited per guest
+(`UPLOAD_RATE_MAX` per `UPLOAD_RATE_WINDOW_MIN`, default 400/10 min) so one
+person can’t flood the NAS.
+
 ### Notes
 
 - **Large videos**: Cloudflare caps request bodies at ~100 MB. The client

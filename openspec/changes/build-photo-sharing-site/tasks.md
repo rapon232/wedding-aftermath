@@ -82,13 +82,13 @@ Groups 11–12 introduce new capabilities — write/extend the matching spec und
 
 ## 10. Robustness & data safety
 
-- [ ] 10.1 ★ Backup verification: NAS cron that records `data/` size + media count and alerts if either drops unexpectedly (originals are irreplaceable — silent loss is the one unrecoverable failure)
-- [ ] 10.2 ★ Liveness + auto-restart: `restart: unless-stopped` (in compose) plus external `/api/health` monitoring (UptimeRobot/Cloudflare) so a crashed container pings the owner
-- [ ] 10.3 Integrity sweep: periodic reconcile that every `media` row has its files on disk and every original has a row; repair/flag desyncs from crashed mid-uploads
-- [ ] 10.4 Disk-space guard: reject uploads with a friendly message when the volume is near full instead of failing opaquely
-- [ ] 10.5 Structured request logging (method, path, guest, status, bytes) so "it didn't work" reports are diagnosable
-- [ ] 10.6 EXIF GPS stripping: strip GPS from derived renditions (and optionally offer stripped-original downloads) — guests may not want home/venue coordinates shared
-- [ ] 10.7 Per-guest upload rate limit: cap burst uploads so one person can't dump 2000 files and starve the NAS
+- [x] 10.1 ★ Backup verification: NAS cron that records `data/` size + media count and alerts if either drops unexpectedly (originals are irreplaceable — silent loss is the one unrecoverable failure)
+- [x] 10.2 ★ Liveness + auto-restart: `restart: unless-stopped` (in compose) plus external `/api/health` monitoring (UptimeRobot/Cloudflare) so a crashed container pings the owner
+- [x] 10.3 Integrity sweep: periodic reconcile that every `media` row has its files on disk and every original has a row; repair/flag desyncs from crashed mid-uploads
+- [x] 10.4 Disk-space guard: reject uploads with a friendly message when the volume is near full instead of failing opaquely
+- [x] 10.5 Structured request logging (method, path, guest, status, bytes) so "it didn't work" reports are diagnosable
+- [x] 10.6 EXIF GPS stripping: strip GPS from derived renditions (and optionally offer stripped-original downloads) — guests may not want home/venue coordinates shared
+- [x] 10.7 Per-guest upload rate limit: cap burst uploads so one person can't dump 2000 files and starve the NAS
 
 ## 11. UX polish & delight
 
