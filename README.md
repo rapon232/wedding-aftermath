@@ -70,6 +70,12 @@ DATA_DIR=/data node scripts/check-backup.mjs      # alerts if media count/bytes 
 DATA_DIR=/data node scripts/integrity-sweep.mjs   # report DB↔files desyncs (--fix to repair)
 ```
 
+After the event, archive every original offsite:
+
+```bash
+DATA_DIR=/data node scripts/export-all.mjs /path/to/backup   # aftermath-originals-YYYY-MM-DD.zip
+```
+
 Suggested cron on the NAS (daily backup verification):
 
 ```cron

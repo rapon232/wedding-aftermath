@@ -431,3 +431,16 @@ body.selecting .cell-fav { display: none; }
   .lightbox:not([hidden]) .lb-stage { animation: none; }
   .burst { display: none; }
 }
+
+/* --- Group 13: upload help hint --- */
+.upload-hint {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: .8rem; line-height: 1.45; color: var(--text);
+  background: var(--bordeaux-pale); border: 1.5px solid var(--bordeaux-light);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 14px;
+}
+.upload-hint strong { color: var(--bordeaux-dark); }
+.hint-dismiss {
+  margin-left: auto; flex-shrink: 0; background: none; border: none; cursor: pointer;
+  color: var(--bordeaux); font-size: .9rem; line-height: 1; padding: 2px 4px;
+}

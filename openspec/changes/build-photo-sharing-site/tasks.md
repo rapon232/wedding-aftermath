@@ -111,5 +111,5 @@ Groups 11–12 introduce new capabilities — write/extend the matching spec und
 
 ## 13. Practical ops
 
-- [ ] 13.1 Guest-facing "how to upload" one-liner (iPhone Live Photos/HEIC note + "use Wi-Fi for big videos" nudge)
-- [ ] 13.2 Owner "download everything" job: full originals as a dated zip to stash offsite after the event
+- [x] 13.1 Guest-facing "how to upload" one-liner (iPhone Live Photos/HEIC note + "use Wi-Fi for big videos" nudge)
+- [x] 13.2 Owner "download everything" job: full originals as a dated zip to stash offsite after the event

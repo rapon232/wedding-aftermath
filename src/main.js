@@ -31,6 +31,16 @@ async function init() {
   // Deep link: /#photo=<id> opens straight into that item once the gallery is ready.
   if (location.hash.includes('photo=')) setTimeout(maybeOpenFromHash, 400);
 
+  // One-time upload tips (iPhone HEIC / big-video-on-Wi-Fi nudge).
+  const hint = document.getElementById('uploadHint');
+  if (hint && !localStorage.getItem('lw-hint-seen')) {
+    hint.hidden = false;
+    document.getElementById('hintDismiss').addEventListener('click', () => {
+      hint.hidden = true;
+      localStorage.setItem('lw-hint-seen', '1');
+    });
+  }
+
   // Refresh the grid shortly after uploads finish processing (debounced across a batch)
   let reloadTimer = null;
   initUploader({
