@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — #LoveWins. The Aftermath</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <main class="login-wrap">
+    <div class="login-card">
+      <div class="pill-tag">Our favorite people</div>
+      <h1 class="login-title">#LoveWins. <span class="nowrap"><em>The Aftermath</em> <span class="heart">♥</span></span></h1>
+      <p class="login-sub">Enter your personal access code to see and share photos &amp; videos from the big day.</p>
+      <form id="loginForm" autocomplete="off">
+        <input
+          id="codeInput"
+          class="code-input"
+          type="text"
+          inputmode="text"
+          autocapitalize="characters"
+          spellcheck="false"
+          placeholder="XXXX-XXXX"
+          maxlength="9"
+          aria-label="Access code"
+        />
+        <p id="loginError" class="login-error" hidden></p>
+        <button type="submit" class="btn btn-bx" id="loginBtn">Enter the gallery</button>
+      </form>
+      <p class="login-help">Lost your code? Ask the Groom&nbsp;♥</p>
+    </div>
+  </main>
+  <script type="module" src="/src/login.js"></script>
+</body>
+</html>

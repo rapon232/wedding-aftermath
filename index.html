@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>#LoveWins. The Aftermath</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="wrapper">
+    <header class="site-header">
+      <div class="header-text">
+        <h1>#LoveWins. <span class="nowrap"><em>The Aftermath</em> <span class="heart">♥</span></span></h1>
+        <p id="welcome" class="header-sub"></p>
+      </div>
+      <div class="header-actions">
+        <button id="uploadBtn" class="btn btn-bx">↑ Upload</button>
+        <button id="adminBtn" class="btn btn-ghost" hidden>Guests</button>
+        <button id="logoutBtn" class="btn btn-ghost">Sign out</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="seg" id="typeSeg" role="group" aria-label="Media type">
+        <button data-type="" class="active">All</button>
+        <button data-type="photo">Photos</button>
+        <button data-type="video">Videos</button>
+      </div>
+      <select id="uploaderSel" aria-label="Filter by uploader">
+        <option value="">Everyone</option>
+      </select>
+      <select id="sortSel" aria-label="Sort order">
+        <option value="taken-desc">Newest first</option>
+        <option value="taken-asc">Oldest first</option>
+        <option value="uploaded-desc">Recently uploaded</option>
+      </select>
+      <button id="selectBtn" class="btn-tool">Select</button>
+      <button id="downloadAllBtn" class="btn-tool">Download all</button>
+      <span id="countLabel" class="count-label"></span>
+    </div>
+
+    <div class="select-bar" id="selectBar" hidden>
+      <span id="selCount">0 selected</span>
+      <button id="selAllBtn" class="btn-tool">Select loaded</button>
+      <button id="selDownloadBtn" class="btn btn-bx">Download</button>
+      <button id="selCancelBtn" class="btn-tool">Cancel</button>
+    </div>
+
+    <main id="gallery" class="gallery">
+      <p class="gallery-empty" id="galleryEmpty">Loading…</p>
+    </main>
+    <div id="sentinel"></div>
+  </div>
+
+  <aside id="uploadTray" class="upload-tray" hidden></aside>
+  <div class="drop-overlay"><div class="drop-overlay-inner">Drop photos &amp; videos to upload&nbsp;♥</div></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
