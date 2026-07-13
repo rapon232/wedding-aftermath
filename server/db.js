@@ -11,6 +11,7 @@ for (const dir of Object.values(dirs)) fs.mkdirSync(dir, { recursive: true });
 export const db = new Database(path.join(config.dataDir, 'db.sqlite'));
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+db.pragma('busy_timeout = 5000'); // tolerate a concurrent cron/script writer
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS guests (
@@ -82,5 +83,5 @@ export function bootstrapAdmin() {
   if (count > 0) return;
   const code = generateCode();
   db.prepare('INSERT INTO guests (code, name, is_admin) VALUES (?, ?, 1)').run(code, config.adminName);
-  console.log(`\n★ Admin guest "${config.adminName}" created — access code: ${code}\n  (shown only once; regenerate by deleting ${path.join(config.dataDir, 'db.sqlite')})\n`);
+  console.log(`\n★ Admin guest "${config.adminName}" created — access code: ${code}\n  (shown only once; if lost, run: node scripts/reset-admin.mjs — do NOT delete db.sqlite)\n`);
 }

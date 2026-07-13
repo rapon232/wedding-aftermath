@@ -68,17 +68,31 @@ test('integrity sweep detects missing originals and orphan files, and --fix repa
      VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, 'x.jpg', 'jpg', 'photo', 1, 'h1',
              '2026-06-20T00:00:00Z', 'ready')`
   ).run();
-  // Orphan file with no row → should be detected.
-  fs.writeFileSync(path.join(dirs.originals, 'orphan-file.jpg'), 'x');
+  // Orphan file with no row, aged past the grace window so the sweep will act on it.
+  const orphan = path.join(dirs.originals, 'orphan-file.jpg');
+  fs.writeFileSync(orphan, 'x');
+  const old = Date.now() / 1000 - 2 * 3600;
+  fs.utimesSync(orphan, old, old);
 
   const before = integritySweep({ fix: false });
   assert.ok(before.missingOriginals.includes('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'));
   assert.ok(before.orphanOriginals.includes('orphan-file.jpg'));
+  assert.equal(before.refused, false);
 
   const fixed = integritySweep({ fix: true });
-  assert.equal(fixed.missingOriginals.length, 0 + fixed.missingOriginals.length); // idempotent shape
-  // After fix: orphan gone, row marked failed.
-  assert.ok(!fs.existsSync(path.join(dirs.originals, 'orphan-file.jpg')));
+  // Orphan is QUARANTINED (moved to trash/), never deleted — recoverable.
+  assert.ok(!fs.existsSync(orphan), 'orphan should leave originals/');
+  assert.ok(fs.existsSync(path.join(dirs.trash, 'orphan-file.jpg')), 'orphan should be quarantined to trash/');
+  assert.equal(fixed.refused, false);
   const row = db.prepare("SELECT status FROM media WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'").get();
   assert.equal(row.status, 'failed');
+
+  // Danger guard: empty DB + files present (deleted-db.sqlite / mismount) → REFUSE, touch nothing.
+  db.prepare('DELETE FROM media').run();
+  const precious = path.join(dirs.originals, 'precious.jpg');
+  fs.writeFileSync(precious, 'irreplaceable');
+  fs.utimesSync(precious, old, old);
+  const danger = integritySweep({ fix: true });
+  assert.equal(danger.refused, true, 'must refuse when rows=0 and files exist');
+  assert.ok(fs.existsSync(precious), 'the precious original must NOT be deleted or moved');
 });

@@ -34,6 +34,12 @@ test('exifToUtc: malformed input returns null', () => {
   assert.equal(exifToUtc(''), null);
 });
 
+test('exifToUtc: accepts Z and colon-less offsets', () => {
+  assert.equal(exifToUtc('2026:06:20 15:30:00', 'Z'), '2026-06-20T15:30:00.000Z');
+  assert.equal(exifToUtc('2026:06:20 15:30:00', '+0200'), '2026-06-20T13:30:00.000Z');
+  assert.equal(exifToUtc('2026:06:20 15:30:00', '-0500'), '2026-06-20T20:30:00.000Z');
+});
+
 test('generateCode: XXXX-XXXX with no ambiguous characters', () => {
   for (let i = 0; i < 500; i++) {
     const code = generateCode();

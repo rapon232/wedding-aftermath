@@ -20,24 +20,24 @@ ENV NODE_ENV=production \
     PORT=3000 \
     DATA_DIR=/data
 
-# ffmpeg/ffprobe for video posters + duration probing.
+# ffmpeg/ffprobe for video posters + duration probing; gosu to drop privileges
+# in the entrypoint after fixing volume ownership.
 # (sharp bundles its own libvips; HEIC decode falls back to the pure-JS heic-convert.)
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg \
+  && apt-get install -y --no-install-recommends ffmpeg gosu \
   && rm -rf /var/lib/apt/lists/*
 
-# App: pruned node_modules + built frontend + server + static pages
+# App: pruned node_modules + built frontend + server + static pages + maintenance scripts
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/package.json ./package.json
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
-# Media + SQLite live here; mount a NAS volume at this path.
-VOLUME /data
 EXPOSE 3000
 
-# Run as the built-in non-root node user
-RUN mkdir -p /data && chown -R node:node /data
-USER node
-
-CMD ["node", "server/index.js"]
+# Start as root so the entrypoint can chown the bind-mounted /data (Synology owns
+# it as a host user), then it drops to the unprivileged `node` user via gosu.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -409,8 +409,13 @@ body.selecting .cell-fav { display: none; }
     var(--cream);
 }
 .login-wrap::before {
-  content: '♥'; position: absolute; right: -6vmin; bottom: -10vmin; z-index: 0;
-  font-size: 52vmin; line-height: 1; color: rgba(123, 45, 66, .05); pointer-events: none;
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .06;
+  /* Portrait (phones): fill the screen. */
+  background: url('/login-bg.png') no-repeat center center / cover;
+}
+/* Desktop / landscape: fill by height, centered (no crop top/bottom). */
+@media (min-aspect-ratio: 1 / 1) {
+  .login-wrap::before { background-size: auto 100%; }
 }
 .login-card { position: relative; z-index: 1; }
 

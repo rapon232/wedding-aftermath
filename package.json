@@ -11,7 +11,8 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "check-backup": "node scripts/check-backup.mjs",
     "integrity-sweep": "node scripts/integrity-sweep.mjs",
-    "export-all": "node scripts/export-all.mjs"
+    "export-all": "node scripts/export-all.mjs",
+    "reset-admin": "node scripts/reset-admin.mjs"
   },
   "dependencies": {
     "archiver": "^7.0.1",

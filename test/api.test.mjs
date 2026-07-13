@@ -107,6 +107,15 @@ test('download: zip of selected ids streams as application/zip', async () => {
   assert.equal(bytes.subarray(0, 2).toString(), 'PK', 'valid zip magic');
 });
 
+test('listing: hostile limit values are clamped, not crashed', async () => {
+  for (const bad of ['-5', '2.5', '0', 'abc', '99999']) {
+    const r = await req(srv.base, 'GET', `/api/media?limit=${bad}`, { cookie: admin });
+    assert.equal(r.status, 200, `limit=${bad} should not error`);
+    assert.ok(Array.isArray(r.data.items));
+    assert.ok(r.data.items.length <= 100, 'never exceeds PAGE_MAX');
+  }
+});
+
 test('download: empty selection 400', async () => {
   const r = await req(srv.base, 'POST', '/api/download', {
     cookie: admin,

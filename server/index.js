@@ -13,21 +13,30 @@ import { integritySweep, diskInfo } from './maintenance.js';
 
 bootstrapAdmin();
 requeueUnprocessed();
-// Repair desyncs left by any crash mid-upload (missing originals → failed, drop orphans).
+// Repair desyncs left by any crash mid-upload. Safe by design: never deletes
+// originals (quarantines to trash/), and refuses if the DB looks lost/mismounted.
 {
   const sweep = integritySweep({ fix: true });
-  if (sweep.missingOriginals.length || sweep.orphanOriginals.length) {
+  if (sweep.refused) {
+    console.warn(
+      `⚠ Integrity sweep REFUSED: DB has 0 media rows but ${sweep.orphanOriginals.length} original file(s) exist. ` +
+        `The database may be missing or the data volume mismounted — NOT touching any files. ` +
+        `Check DATA_DIR and restore db.sqlite from backup.`
+    );
+  } else if (sweep.missingOriginals.length || sweep.orphanOriginals.length) {
     console.log(
-      `Integrity sweep: ${sweep.missingOriginals.length} rows missing originals (flagged failed), ` +
-        `${sweep.orphanOriginals.length} orphan file(s) removed.`
+      `Integrity sweep: ${sweep.missingOriginals.length} row(s) missing originals (flagged failed), ` +
+        `${sweep.orphanOriginals.length} orphan original(s) quarantined to trash/.`
     );
   }
 }
 
 const app = express();
 app.disable('x-powered-by');
-// Behind the Cloudflare tunnel the app sees proxied requests; trust X-Forwarded-* for req.ip / secure cookies.
-app.set('trust proxy', true);
+// Behind the Cloudflare tunnel there is exactly one proxy hop (cloudflared).
+// Trust only that hop so req.ip is the real client IP and not a client-spoofable
+// X-Forwarded-For value (which would defeat the login throttle).
+app.set('trust proxy', 1);
 
 // Structured one-line request log (method, path, status, ms, guest) — skips media/static noise.
 if (config.logRequests) {

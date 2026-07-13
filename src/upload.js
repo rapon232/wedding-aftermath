@@ -89,6 +89,12 @@ async function uploadItem(item) {
     item.status = 'failed';
     item.error = err.message || 'upload failed';
   }
+  // Free the local preview blob once the bytes are safely uploaded (not on failure —
+  // the file may be retried). Prevents object-URL memory piling up over a big batch.
+  if (item.preview && ['done', 'duplicate', 'processing'].includes(item.status)) {
+    URL.revokeObjectURL(item.preview);
+    item.preview = null;
+  }
   render();
 }
 
@@ -205,6 +211,7 @@ function render() {
     <ul class="tray-list"></ul>
   `;
   trayEl.querySelector('.tray-clear').addEventListener('click', () => {
+    for (const it of items) if (it.preview) URL.revokeObjectURL(it.preview);
     items = [];
     render();
   });

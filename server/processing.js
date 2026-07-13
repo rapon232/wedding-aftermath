@@ -113,13 +113,19 @@ async function processPhoto(m, original) {
  * event timezone (config.eventTz), DST-correct via Intl.
  */
 export function exifToUtc(raw, offset) {
-  const m = raw.match(/^(\d{4})[:-](\d{2})[:-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  const m = String(raw).match(/^(\d{4})[:-](\d{2})[:-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
   if (!m) return null;
   const [, y, mo, d, h, mi, s] = m.map(Number);
-  if (offset && /^[+-]\d{2}:\d{2}$/.test(offset)) {
-    const sign = offset.startsWith('-') ? -1 : 1;
-    const [oh, om] = offset.slice(1).split(':').map(Number);
-    return new Date(Date.UTC(y, mo - 1, d, h, mi, s) - sign * (oh * 60 + om) * 60000).toISOString();
+  // Accept "Z", "+02:00", or colon-less "+0200" — all seen in the wild for OffsetTimeOriginal.
+  const off = String(offset || '').trim();
+  if (off === 'Z' || off === 'z') {
+    return new Date(Date.UTC(y, mo - 1, d, h, mi, s)).toISOString();
+  }
+  const om2 = off.match(/^([+-])(\d{2}):?(\d{2})$/);
+  if (om2) {
+    const sign = om2[1] === '-' ? -1 : 1;
+    const mins = Number(om2[2]) * 60 + Number(om2[3]);
+    return new Date(Date.UTC(y, mo - 1, d, h, mi, s) - sign * mins * 60000).toISOString();
   }
   return wallClockToUtc(y, mo, d, h, mi, s, config.eventTz);
 }

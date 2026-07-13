@@ -71,7 +71,7 @@ export const mediaFilePaths = (m) => ({
   poster: path.join(dirs.posters, `${m.id}.jpg`),
 });
 
-/** Common tail of both upload paths: hash → dedupe → move into place → insert row → enqueue. */
+/** Common tail of both upload paths: hash → dedupe → insert row → move into place → enqueue. */
 async function finalizeUpload({ tmpPath, originalName, uploaderId }) {
   const filename = cleanName(originalName);
   const ext = extOf(filename);
@@ -80,28 +80,54 @@ async function finalizeUpload({ tmpPath, originalName, uploaderId }) {
     throw httpError(415, `unsupported file type: .${ext || '?'}`);
   }
   const sha256 = await sha256File(tmpPath);
-  const existing = db.prepare('SELECT id, status FROM media WHERE sha256 = ?').get(sha256);
+  const existing = db.prepare('SELECT id, status, ext FROM media WHERE sha256 = ?').get(sha256);
   if (existing) {
+    // Re-uploading a file whose processing previously failed → give it another shot.
+    if (existing.status === 'failed' && fs.existsSync(path.join(dirs.originals, `${existing.id}.${existing.ext}`))) {
+      db.prepare("UPDATE media SET status = 'processing' WHERE id = ?").run(existing.id);
+      fs.rmSync(tmpPath, { force: true });
+      enqueue(existing.id);
+      return { id: existing.id, status: 'processing', duplicate: true };
+    }
     fs.rmSync(tmpPath, { force: true });
     return { id: existing.id, status: existing.status, duplicate: true };
   }
   const id = crypto.randomUUID();
   const type = VIDEO_EXT.has(ext) ? 'video' : 'photo';
   const size = fs.statSync(tmpPath).size;
+  // Insert BEFORE moving the file into place. If a concurrent identical upload
+  // wins the UNIQUE(sha256) race, we catch it, drop our temp file, and report the
+  // existing row as a duplicate — no orphaned original, no 500.
+  try {
+    db.prepare(
+      `INSERT INTO media (id, uploader_id, filename, ext, type, size, sha256, taken_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`
+    ).run(id, uploaderId, filename, ext, type, size, sha256);
+  } catch (err) {
+    if (String(err.code).startsWith('SQLITE_CONSTRAINT')) {
+      fs.rmSync(tmpPath, { force: true });
+      const winner = db.prepare('SELECT id, status FROM media WHERE sha256 = ?').get(sha256);
+      return { id: winner?.id, status: winner?.status, duplicate: true };
+    }
+    throw err;
+  }
   fs.renameSync(tmpPath, path.join(dirs.originals, `${id}.${ext}`));
-  db.prepare(
-    `INSERT INTO media (id, uploader_id, filename, ext, type, size, sha256, taken_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`
-  ).run(id, uploaderId, filename, ext, type, size, sha256);
   enqueue(id);
   return { id, status: 'processing', type, duplicate: false };
 }
 
-// Sweep stale temp files (abandoned chunked uploads, orphaned multer files) on boot.
-for (const f of fs.readdirSync(dirs.tmp)) {
-  const p = path.join(dirs.tmp, f);
-  if (Date.now() - fs.statSync(p).mtimeMs > 24 * 3600 * 1000) fs.rmSync(p, { force: true });
+// Sweep stale temp files (abandoned chunked uploads, orphaned multer files).
+function sweepTmp() {
+  for (const f of fs.readdirSync(dirs.tmp)) {
+    const p = path.join(dirs.tmp, f);
+    try {
+      if (Date.now() - fs.statSync(p).mtimeMs > 24 * 3600 * 1000) fs.rmSync(p, { force: true });
+    } catch {
+      /* raced with a live upload — ignore */
+    }
+  }
 }
+sweepTmp();
 
 const upload = multer({
   storage: multer.diskStorage({ destination: dirs.tmp }),
@@ -135,6 +161,20 @@ mediaRouter.post('/api/upload', requireApi, uploadGuard, upload.single('file'), 
 // stale .part files are swept on boot).
 
 const chunkSessions = new Map();
+const CHUNK_SESSION_TTL_MS = 3 * 3600 * 1000;
+
+// Evict abandoned chunk sessions (guest closed the tab mid-upload) and their
+// .part files so they don't accumulate. Hourly; unref'd so it never blocks exit.
+setInterval(() => {
+  const now = Date.now();
+  for (const [uid, s] of chunkSessions) {
+    if (now - (s.touchedAt || 0) > CHUNK_SESSION_TTL_MS) {
+      chunkSessions.delete(uid);
+      fs.rmSync(s.partPath, { force: true });
+    }
+  }
+  sweepTmp();
+}, 3600 * 1000).unref();
 
 mediaRouter.post('/api/upload/init', requireApi, uploadGuard, (req, res) => {
   const name = cleanName(String(req.body?.name || ''));
@@ -145,7 +185,9 @@ mediaRouter.post('/api/upload/init', requireApi, uploadGuard, (req, res) => {
   const uploadId = crypto.randomUUID();
   const partPath = path.join(dirs.tmp, `${uploadId}.part`);
   fs.writeFileSync(partPath, '');
-  chunkSessions.set(uploadId, { name, size, uploaderId: req.guest.id, received: 0, nextIndex: 0, partPath });
+  chunkSessions.set(uploadId, {
+    name, size, uploaderId: req.guest.id, received: 0, nextIndex: 0, partPath, touchedAt: Date.now(),
+  });
   res.json({ uploadId, chunkSize: CHUNK_SIZE });
 });
 
@@ -164,9 +206,17 @@ mediaRouter.post(
       fs.rmSync(s.partPath, { force: true });
       return res.status(400).json({ error: 'more data than declared size' });
     }
+    // Re-check free space on every chunk — the init-time guard doesn't cover a
+    // long multi-GB stream or many concurrent sessions filling the volume.
+    if (!hasFreeSpace()) {
+      chunkSessions.delete(req.params.uid);
+      fs.rmSync(s.partPath, { force: true });
+      return res.status(507).json({ error: 'The gallery is full right now — please tell the couple.' });
+    }
     fs.appendFileSync(s.partPath, req.body);
     s.received += req.body.length;
     s.nextIndex++;
+    s.touchedAt = Date.now();
     res.json({ received: s.received });
   }
 );
@@ -190,6 +240,7 @@ mediaRouter.post('/api/upload/:uid/finish', requireApi, async (req, res, next) =
 // --- Item status (upload tray polls this until processing finishes) ---
 
 mediaRouter.get('/api/media/:id', requireApi, (req, res) => {
+  if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'bad id' });
   const m = db
     .prepare(
       `SELECT m.id, m.type, m.status, m.filename, m.size, m.taken_at, m.uploaded_at,

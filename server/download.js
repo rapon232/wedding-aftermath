@@ -10,12 +10,29 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export const downloadRouter = express.Router();
 
+// Throttle bulk zips: streaming the whole library saturates NAS disk/IO, so cap
+// how often a single guest can trigger one.
+const downloads = new Map(); // guestId -> [timestamps]
+const DL_MAX = 6;
+const DL_WINDOW_MS = 60 * 1000;
+function downloadGuard(req, res, next) {
+  const now = Date.now();
+  const times = (downloads.get(req.guest.id) || []).filter((t) => t > now - DL_WINDOW_MS);
+  if (times.length >= DL_MAX) {
+    return res.status(429).json({ error: 'Give it a moment — too many downloads at once.' });
+  }
+  times.push(now);
+  downloads.set(req.guest.id, times);
+  next();
+}
+
 // Bulk zip. urlencoded body (submitted via a plain form so the browser natively
 // streams the response to disk): either ids=<comma-separated>, or all=1 with
 // optional type/uploader filters mirroring the gallery view.
 downloadRouter.post(
   '/api/download',
   requireApi,
+  downloadGuard,
   express.urlencoded({ extended: false, limit: '1mb' }),
   (req, res) => {
     let rows;

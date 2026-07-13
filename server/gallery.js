@@ -22,7 +22,9 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
   const loved = req.query.sort === 'loved';
   const sortCol = req.query.sort === 'uploaded' ? 'uploaded_at' : 'taken_at';
   const dir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
-  const limit = Math.min(Number(req.query.limit) || PAGE_DEFAULT, PAGE_MAX);
+  // Clamp to a sane integer: guards against ?limit=-5 (SQLite LIMIT -1 = all rows)
+  // and ?limit=2.5 (datatype mismatch).
+  const limit = Math.min(Math.max(1, Math.trunc(Number(req.query.limit)) || PAGE_DEFAULT), PAGE_MAX);
   const gid = req.guest.id;
 
   // Base filters (status + type/uploader) apply to the paginated list, the pinned
@@ -144,6 +146,7 @@ function sendDerived(res, dir, id, ext) {
   const p = path.join(dir, `${id}.${ext}`);
   if (!fs.existsSync(p)) return res.status(404).end();
   res.set('Cache-Control', 'private, max-age=31536000, immutable');
+  res.set('X-Content-Type-Options', 'nosniff');
   res.sendFile(p);
 }
 
@@ -160,6 +163,7 @@ galleryRouter.get('/media/file/:id', requireApi, (req, res) => {
   const p = path.join(dirs.originals, `${m.id}.${m.ext}`);
   if (!fs.existsSync(p)) return res.status(404).end();
   res.set('Cache-Control', 'private, max-age=31536000, immutable');
+  res.set('X-Content-Type-Options', 'nosniff');
   const disposition = req.query.download ? 'attachment' : 'inline';
   res.set('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(m.filename)}`);
   // Explicit content types so mobile browsers (esp. Android) handle video correctly.

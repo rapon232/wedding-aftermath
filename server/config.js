@@ -44,4 +44,6 @@ export const dirs = {
   previews: path.join(config.dataDir, 'previews'),
   posters: path.join(config.dataDir, 'posters'),
   tmp: path.join(config.dataDir, 'tmp'),
+  // Orphan originals are moved here rather than deleted — recoverable, never lost.
+  trash: path.join(config.dataDir, 'trash'),
 };

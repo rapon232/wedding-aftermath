@@ -46,6 +46,10 @@ function normalizeCode(input) {
 const attempts = new Map();
 function throttleLogin(req, res, next) {
   const now = Date.now();
+  // Prune expired entries so the Map can't grow unbounded (belt-and-braces with trust proxy 1).
+  if (attempts.size > 1000) {
+    for (const [ip, r] of attempts) if (now >= r.resetAt) attempts.delete(ip);
+  }
   const rec = attempts.get(req.ip);
   if (rec && now < rec.resetAt && rec.count >= 10) {
     return res.status(429).json({ error: 'too many attempts, wait a minute' });

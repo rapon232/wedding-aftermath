@@ -6,9 +6,10 @@ import { openLightbox, initLightbox } from './lightbox.js';
 
 let me;
 let state = { sort: 'taken-desc', type: '', uploader: '' };
-let items = [];
+const items = []; // stable array identity — the lightbox holds this same reference
 let nextCursor = null;
 let loading = false;
+let loadGen = 0; // bumped on reload; in-flight loadPage bails if its generation is stale
 let fmt; // time formatter
 let fmtDay; // day-header formatter
 let lastDayLabel = null; // tracks day-group boundaries during append
@@ -53,10 +54,12 @@ export function initGallery(user) {
 
 /** Full refresh (initial load, filter change, new upload finished). */
 export function reload() {
-  items = [];
+  loadGen++; // invalidate any in-flight loadPage so its response is discarded
+  items.length = 0; // mutate in place — keep the array identity the lightbox references
   nextCursor = null;
   lastDayLabel = null;
   inEveryoneSection = false;
+  loading = false;
   grid().innerHTML = '';
   setEmpty('Loading…');
   loadPage(true);
@@ -177,6 +180,7 @@ async function loadUploaders() {
 
 async function loadPage(first = false) {
   loading = true;
+  const gen = loadGen; // capture; if reload() bumps loadGen mid-flight, discard this response
   const [sort, dir] = state.sort.split('-');
   const q = new URLSearchParams({ sort, dir: dir || 'desc' });
   if (state.type) q.set('type', state.type);
@@ -185,8 +189,10 @@ async function loadPage(first = false) {
 
   try {
     const r = await fetch(`/api/media?${q}`);
+    if (gen !== loadGen) return; // a reload happened while we awaited — drop stale data
     if (r.status === 401) return location.replace('/login.html');
     const data = await r.json();
+    if (gen !== loadGen) return;
     nextCursor = data.nextCursor;
 
     if (first && data.totals) {
@@ -219,9 +225,9 @@ async function loadPage(first = false) {
     // After the first successful load, stamp "seen" so the next visit compares against now.
     if (first) fetch('/api/seen', { method: 'POST' }).catch(() => {});
   } catch {
-    if (first) setEmpty('Could not load the gallery — check your connection and refresh.');
+    if (gen === loadGen && first) setEmpty('Could not load the gallery — check your connection and refresh.');
   } finally {
-    loading = false;
+    if (gen === loadGen) loading = false; // don't clear a newer load's guard
   }
 }
 
@@ -341,8 +347,8 @@ function cell(item, index) {
 
 async function toggleFavorite(item, favEl) {
   const faved = !item.faved;
-  // optimistic
-  applyFav(item, faved, (item.fav_count || 0) + (faved ? 1 : -1));
+  const prevCount = item.fav_count || 0; // capture BEFORE the optimistic mutation
+  applyFav(item, faved, prevCount + (faved ? 1 : -1));
   favEl?.classList.toggle('faved', faved);
   try {
     const r = await fetch(`/api/media/${item.id}/favorite`, {
@@ -354,7 +360,7 @@ async function toggleFavorite(item, favEl) {
     const d = await r.json();
     applyFav(item, d.faved, d.count);
   } catch {
-    applyFav(item, !faved, item.fav_count); // revert
+    applyFav(item, !faved, prevCount); // revert to the true pre-toggle count
     favEl?.classList.toggle('faved', !faved);
   }
 }
