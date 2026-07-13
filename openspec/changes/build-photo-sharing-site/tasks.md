@@ -70,3 +70,46 @@ Automated with Node's built-in test runner (`node --test`) — no new deps. Spli
 - [x] 9.3 Gallery UI: render a "Pinned ✦" section above the grid, pinned cells badged; unified item order keeps lightbox navigation correct
 - [x] 9.4 Lightbox: admin-only Pin/Unpin button that toggles state and refreshes the gallery
 - [x] 9.5 Cover pinning in the group-8 security tests (non-admin pin → 403) + API test for pinned-set separation
+
+---
+
+## Enhancement backlog
+
+Groups 1–9 are the shipped product. The groups below are post-launch enhancements,
+ordered by group but pickable individually. `★` marks the highest-value items.
+Groups 11–12 introduce new capabilities — write/extend the matching spec under
+`specs/` when a group is picked up.
+
+## 10. Robustness & data safety
+
+- [ ] 10.1 ★ Backup verification: NAS cron that records `data/` size + media count and alerts if either drops unexpectedly (originals are irreplaceable — silent loss is the one unrecoverable failure)
+- [ ] 10.2 ★ Liveness + auto-restart: `restart: unless-stopped` (in compose) plus external `/api/health` monitoring (UptimeRobot/Cloudflare) so a crashed container pings the owner
+- [ ] 10.3 Integrity sweep: periodic reconcile that every `media` row has its files on disk and every original has a row; repair/flag desyncs from crashed mid-uploads
+- [ ] 10.4 Disk-space guard: reject uploads with a friendly message when the volume is near full instead of failing opaquely
+- [ ] 10.5 Structured request logging (method, path, guest, status, bytes) so "it didn't work" reports are diagnosable
+- [ ] 10.6 EXIF GPS stripping: strip GPS from derived renditions (and optionally offer stripped-original downloads) — guests may not want home/venue coordinates shared
+- [ ] 10.7 Per-guest upload rate limit: cap burst uploads so one person can't dump 2000 files and starve the NAS
+
+## 11. UX polish & delight
+
+- [ ] 11.1 ★ "New since your last visit": per-guest last-seen marker + a count/badge surfacing fresh uploads (drives post-wedding re-engagement)
+- [ ] 11.2 ★ Day/session grouping: sticky date headers in the timeline ("Saturday · Ceremony", "Sunday · Brunch"), grouped by event-local date
+- [ ] 11.3 Favorites/reactions: per-guest ♥ tap + a "Most loved" filter (new `media_reactions` table)
+- [ ] 11.4 Optimistic upload: render the thumbnail immediately from a local object URL instead of waiting for the processing poll
+- [ ] 11.5 Deep links: `/#photo=<id>` opens straight into that item's lightbox (shareable between guests)
+- [ ] 11.6 PWA: web manifest + ♥ icon + service worker so it installs to the home screen and opens fullscreen
+- [ ] 11.7 Bulk-download progress: "preparing N photos…" feedback so a large zip doesn't feel hung
+- [ ] 11.8 Gesture niceties: pinch-to-zoom in the lightbox, double-tap to favorite
+
+## 12. Visual identity
+
+- [ ] 12.1 ★ Login hero: signature photo of the couple behind the card, or a confetti/♥ moment on successful login
+- [ ] 12.2 Self-host fonts: vendor DM Serif Display + DM Sans (removes the Google Fonts dependency — robustness + privacy + instant/offline render)
+- [ ] 12.3 Loading states with personality: subtle skeleton shimmer on the grid while thumbnails load
+- [ ] 12.4 Curation view: magazine-style larger layout for the pinned photographer shots vs. the dense guest grid
+- [ ] 12.5 Motion pass: gentle stagger-in on grid cells + zoom-from-thumbnail lightbox transition (honor `prefers-reduced-motion`, already wired)
+
+## 13. Practical ops
+
+- [ ] 13.1 Guest-facing "how to upload" one-liner (iPhone Live Photos/HEIC note + "use Wi-Fi for big videos" nudge)
+- [ ] 13.2 Owner "download everything" job: full originals as a dated zip to stash offsite after the event
