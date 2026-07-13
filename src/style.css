@@ -353,6 +353,9 @@ body.selecting .cell-new { display: none; }
 .cell-fav-icon { opacity: .7; transition: color .15s, opacity .15s; }
 .cell-fav.faved .cell-fav-icon { color: #ff5c8a; opacity: 1; }
 .cell-fav-n { font-weight: 600; min-width: 4px; }
+/* No favorite count → a clean centered round circle around the heart. */
+.cell-fav.no-count { padding: 0; width: 26px; height: 26px; border-radius: 50%; justify-content: center; }
+.cell-fav.no-count .cell-fav-n { display: none; }
 body.selecting .cell-fav { display: none; }
 
 /* Lightbox favorite button */

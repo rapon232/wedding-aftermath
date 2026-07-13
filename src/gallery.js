@@ -321,8 +321,9 @@ function cell(item, index) {
   }
 
   // Favorite heart (bottom-left). Tapping it toggles without opening the lightbox.
+  // No count → render as a centered round circle (no-count); with a count → pill.
   const fav = document.createElement('span');
-  fav.className = 'cell-fav' + (item.faved ? ' faved' : '');
+  fav.className = 'cell-fav' + (item.faved ? ' faved' : '') + (item.fav_count ? '' : ' no-count');
   fav.innerHTML = `<span class="cell-fav-icon">♥</span><span class="cell-fav-n">${item.fav_count || ''}</span>`;
   fav.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -372,6 +373,7 @@ function applyFav(item, faved, count) {
   const cellEl = grid().querySelector(`.cell[data-id="${item.id}"] .cell-fav`);
   if (cellEl) {
     cellEl.classList.toggle('faved', !!faved);
+    cellEl.classList.toggle('no-count', !item.fav_count);
     cellEl.querySelector('.cell-fav-n').textContent = item.fav_count || '';
   }
 }
