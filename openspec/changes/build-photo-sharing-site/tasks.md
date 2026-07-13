@@ -103,11 +103,11 @@ Groups 11–12 introduce new capabilities — write/extend the matching spec und
 
 ## 12. Visual identity
 
-- [ ] 12.1 ★ Login hero: signature photo of the couple behind the card, or a confetti/♥ moment on successful login
-- [ ] 12.2 Self-host fonts: vendor DM Serif Display + DM Sans (removes the Google Fonts dependency — robustness + privacy + instant/offline render)
-- [ ] 12.3 Loading states with personality: subtle skeleton shimmer on the grid while thumbnails load
-- [ ] 12.4 Curation view: magazine-style larger layout for the pinned photographer shots vs. the dense guest grid
-- [ ] 12.5 Motion pass: gentle stagger-in on grid cells + zoom-from-thumbnail lightbox transition (honor `prefers-reduced-motion`, already wired)
+- [x] 12.1 ★ Login hero: signature photo of the couple behind the card, or a confetti/♥ moment on successful login
+- [x] 12.2 Self-host fonts: vendor DM Serif Display + DM Sans (removes the Google Fonts dependency — robustness + privacy + instant/offline render)
+- [x] 12.3 Loading states with personality: subtle skeleton shimmer on the grid while thumbnails load
+- [x] 12.4 Curation view: magazine-style larger layout for the pinned photographer shots vs. the dense guest grid
+- [x] 12.5 Motion pass: gentle stagger-in on grid cells + zoom-from-thumbnail lightbox transition (honor `prefers-reduced-motion`, already wired)
 
 ## 13. Practical ops
 

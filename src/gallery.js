@@ -294,8 +294,11 @@ function cell(item, index) {
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.decoding = 'async';
-  img.src = `/media/thumb/${item.id}`;
   img.alt = '';
+  // Skeleton shimmer until the thumbnail decodes, then fade it in (12.3/12.5).
+  img.addEventListener('load', () => btn.classList.add('loaded'), { once: true });
+  img.addEventListener('error', () => btn.classList.add('loaded'), { once: true });
+  img.src = `/media/thumb/${item.id}`;
   btn.appendChild(img);
 
   if (item.type === 'video') {

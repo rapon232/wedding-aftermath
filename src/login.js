@@ -30,6 +30,7 @@ form.addEventListener('submit', async (e) => {
       body: JSON.stringify({ code }),
     });
     if (res.ok) {
+      await celebrate();
       location.replace('/');
       return;
     }
@@ -49,4 +50,26 @@ function showError(msg) {
   errorEl.textContent = msg;
   errorEl.hidden = false;
   input.focus();
+}
+
+// A little ♥ burst on successful sign-in, then redirect.
+function celebrate() {
+  btn.textContent = 'Welcome ♥';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return new Promise((r) => setTimeout(r, 150));
+  const layer = document.createElement('div');
+  layer.className = 'burst';
+  for (let i = 0; i < 16; i++) {
+    const h = document.createElement('span');
+    h.textContent = '♥';
+    const angle = (Math.PI * 2 * i) / 16 + Math.random();
+    const dist = 90 + Math.random() * 120;
+    h.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    h.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    h.style.setProperty('--d', `${Math.random() * 120}ms`);
+    h.style.fontSize = `${14 + Math.random() * 18}px`;
+    layer.appendChild(h);
+  }
+  document.body.appendChild(layer);
+  return new Promise((r) => setTimeout(r, 750));
 }

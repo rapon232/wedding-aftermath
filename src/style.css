@@ -376,3 +376,58 @@ body.selecting .cell-fav { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .lb-stage img, .toast { transition: none !important; }
 }
+
+/* --- Group 12: visual identity --- */
+
+/* Skeleton shimmer while a thumbnail loads, then fade the image in (12.3 + 12.5) */
+.cell::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(100deg, var(--cream-mid) 30%, #ece5d9 50%, var(--cream-mid) 70%);
+  background-size: 200% 100%; animation: shimmer 1.3s linear infinite;
+}
+.cell.loaded::before { display: none; }
+.cell img { position: relative; z-index: 1; opacity: 0; transition: opacity .4s ease; }
+.cell.loaded img { opacity: 1; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Curation view: pinned photographer shots get a featured, magazine-scale tile (12.4) */
+@media (min-width: 640px) {
+  .cell.pinned { grid-column: span 2; aspect-ratio: 16 / 10; }
+}
+
+/* Lightbox opens with a gentle zoom-in (12.5) */
+.lightbox:not([hidden]) .lb-stage { animation: lb-in .22s ease-out; }
+@keyframes lb-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+
+/* Login hero: ambient wedding-toned background + faint ♥ watermark (12.1).
+   Drop a photo at public/hero.jpg and it layers in automatically. */
+.login-wrap {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(1100px 560px at 50% -12%, var(--bordeaux-pale), transparent 60%),
+    radial-gradient(820px 460px at 105% 112%, var(--mint-pale), transparent 55%),
+    var(--cream);
+}
+.login-wrap::before {
+  content: '♥'; position: absolute; right: -6vmin; bottom: -10vmin; z-index: 0;
+  font-size: 52vmin; line-height: 1; color: rgba(123, 45, 66, .05); pointer-events: none;
+}
+.login-card { position: relative; z-index: 1; }
+
+/* ♥ burst on successful sign-in */
+.burst { position: fixed; left: 50%; top: 44%; z-index: 500; pointer-events: none; }
+.burst span {
+  position: absolute; color: var(--bordeaux); opacity: 0;
+  animation: burst .72s ease-out forwards; animation-delay: var(--d, 0ms);
+}
+@keyframes burst {
+  0% { opacity: 1; transform: translate(0, 0) scale(.3); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell::before { animation: none; }
+  .cell img { transition: none; }
+  .lightbox:not([hidden]) .lb-stage { animation: none; }
+  .burst { display: none; }
+}

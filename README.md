@@ -96,3 +96,8 @@ person can’t flood the NAS.
   everyone sees consistent event-local times.
 - **HEIC**: iPhone HEIC/HEIF photos are converted to WebP for display while the
   original stays downloadable.
+- **Fonts** are self-hosted (`public/fonts/`, vendored from Google Fonts) — no
+  external dependency, instant render, works offline.
+- **Login hero**: drop a photo of the couple at `public/hero.jpg` and uncomment
+  the `background-image` line under `.login-wrap` in `src/style.css` to layer it
+  behind the sign-in card (otherwise a wedding-toned gradient is used).

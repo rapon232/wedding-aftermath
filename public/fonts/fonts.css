@@ -1,0 +1,23 @@
+/* Self-hosted fonts (vendored from Google Fonts, latin subset) — no external
+   dependency, instant render, works offline. */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400 600; /* variable file covers the range we use */
+  font-display: swap;
+  src: url('/fonts/dmsans.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dmserif.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dmserif-italic.woff2') format('woff2');
+}
