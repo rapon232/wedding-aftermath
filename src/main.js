@@ -4,6 +4,7 @@
 import { initUploader } from './upload.js';
 import { initGallery, reload, maybeOpenFromHash } from './gallery.js';
 import { initAdmin } from './admin.js';
+import { initNotes } from './notes.js';
 
 async function init() {
   const me = await fetch('/api/me').then((r) => (r.ok ? r.json() : null));
@@ -27,6 +28,12 @@ async function init() {
 
   initGallery(me);
   if (me.isAdmin) initAdmin(document.getElementById('adminBtn'));
+
+  const noteFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: me.eventTz || 'Europe/Rome',
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+  initNotes(document.getElementById('noteBtn'), me, (iso) => noteFmt.format(new Date(iso)));
 
   // Deep link: /#photo=<id> opens straight into that item once the gallery is ready.
   if (location.hash.includes('photo=')) setTimeout(maybeOpenFromHash, 400);

@@ -8,6 +8,7 @@ import { loadGuest, authRouter } from './auth.js';
 import { mediaRouter } from './media.js';
 import { galleryRouter } from './gallery.js';
 import { downloadRouter } from './download.js';
+import { socialRouter } from './social.js';
 import { requeueUnprocessed } from './processing.js';
 import { integritySweep, diskInfo } from './maintenance.js';
 
@@ -70,6 +71,7 @@ app.use(authRouter);
 app.use(mediaRouter);
 app.use(galleryRouter);
 app.use(downloadRouter);
+app.use(socialRouter);
 
 // Production: serve the built frontend. In dev, Vite serves pages and proxies /api here.
 if (fs.existsSync(config.distDir)) {

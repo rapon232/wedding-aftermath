@@ -47,10 +47,22 @@ function build() {
       </div>
       <div class="lb-actions">
         <button class="lb-fav btn-lb" aria-label="Favorite"><span class="lb-fav-icon">♥</span> <span class="lb-fav-n"></span></button>
+        <button class="lb-comment btn-lb" aria-label="Comments">💬 <span class="lb-comment-n"></span></button>
         <button class="lb-pin btn-lb" hidden></button>
         <a class="lb-download btn-lb" download>Download</a>
         <button class="lb-delete btn-lb" hidden>Delete</button>
       </div>
+    </div>
+    <div class="lb-comments" aria-label="Comments">
+      <div class="lb-comments-head">
+        <strong>Comments</strong>
+        <button class="lb-comments-close" aria-label="Close comments">✕</button>
+      </div>
+      <ul class="lb-comments-list"></ul>
+      <form class="lb-comment-form">
+        <input class="lb-comment-input" type="text" maxlength="1000" placeholder="Add a comment…" />
+        <button type="submit" class="btn btn-bx lb-comment-send">Send</button>
+      </form>
     </div>
   `;
   document.body.appendChild(overlay);
@@ -61,14 +73,22 @@ function build() {
   overlay.querySelector('.lb-delete').addEventListener('click', del);
   overlay.querySelector('.lb-pin').addEventListener('click', togglePin);
   overlay.querySelector('.lb-fav').addEventListener('click', toggleFav);
+  overlay.querySelector('.lb-comment').addEventListener('click', toggleComments);
+  overlay.querySelector('.lb-comments-close').addEventListener('click', () => setComments(false));
+  overlay.querySelector('.lb-comment-form').addEventListener('submit', submitComment);
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay || e.target.classList.contains('lb-stage')) close();
+    if (e.target === overlay || e.target.classList.contains('lb-stage')) {
+      if (commentsOpen) return setComments(false); // first tap closes the panel
+      close();
+    }
   });
 
   document.addEventListener('keydown', (e) => {
     if (overlay.hidden) return;
-    if (e.key === 'Escape') close();
-    else if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'Escape') return commentsOpen ? setComments(false) : close();
+    // Don't hijack arrows while typing a comment.
+    if (e.target.matches('input, textarea')) return;
+    if (e.key === 'ArrowLeft') step(-1);
     else if (e.key === 'ArrowRight') step(1);
   });
 
@@ -78,7 +98,7 @@ function build() {
     passive: true,
   });
   overlay.addEventListener('touchend', (e) => {
-    if (touchX === null || zoomed) return;
+    if (touchX === null || zoomed || commentsOpen) return;
     const dx = e.changedTouches[0].clientX - touchX;
     touchX = null;
     if (Math.abs(dx) > 48) step(dx > 0 ? -1 : 1);
@@ -177,6 +197,9 @@ function show() {
   pinBtn.hidden = !me.isAdmin;
   pinBtn.textContent = item.pinned_at ? '✦ Unpin' : '✦ Pin';
   updateFavBtn(item);
+  setComments(false); // collapse panel on every item change
+  overlay.querySelector('.lb-comment-n').textContent = '';
+  loadComments(item.id);
   overlay.querySelector('.lb-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   overlay.querySelector('.lb-next').style.visibility =
     idx < list.length - 1 || opts.loadMore ? 'visible' : 'hidden';
@@ -223,6 +246,99 @@ function showVideoFallback(stage, item) {
       <a class="btn-lb" href="/media/file/${item.id}?download=1" download>Download video</a>
     </div>`;
   stage.appendChild(box);
+}
+
+// --- Comments ---
+let commentsOpen = false;
+let comments = [];
+
+function setComments(open) {
+  commentsOpen = open;
+  overlay.querySelector('.lb-comments').classList.toggle('open', open);
+  if (open) setTimeout(() => overlay.querySelector('.lb-comment-input').focus(), 50);
+}
+
+function toggleComments() {
+  setComments(!commentsOpen);
+}
+
+async function loadComments(mediaId) {
+  try {
+    const r = await fetch(`/api/media/${mediaId}/comments`);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (list[idx]?.id !== mediaId) return; // navigated away while loading
+    comments = data;
+    renderComments();
+  } catch {
+    /* offline — leave panel empty */
+  }
+}
+
+function renderComments() {
+  overlay.querySelector('.lb-comment-n').textContent = comments.length || '';
+  const ul = overlay.querySelector('.lb-comments-list');
+  ul.innerHTML = '';
+  if (!comments.length) {
+    const li = document.createElement('li');
+    li.className = 'lb-comment-empty';
+    li.textContent = 'No comments yet — say something sweet ♥';
+    ul.appendChild(li);
+    return;
+  }
+  for (const c of comments) {
+    const li = document.createElement('li');
+    li.className = 'lb-comment-item';
+    const who = document.createElement('span');
+    who.className = 'lb-comment-who';
+    who.textContent = c.guest_name;
+    const body = document.createElement('span');
+    body.className = 'lb-comment-body';
+    body.textContent = c.body; // textContent → XSS-safe
+    li.append(who, body);
+    if (me.isAdmin || c.guest_id === me.id) {
+      const del = document.createElement('button');
+      del.className = 'lb-comment-del';
+      del.textContent = '✕';
+      del.setAttribute('aria-label', 'Delete comment');
+      del.addEventListener('click', () => deleteComment(c.id));
+      li.appendChild(del);
+    }
+    ul.appendChild(li);
+  }
+  ul.scrollTop = ul.scrollHeight;
+}
+
+async function submitComment(e) {
+  e.preventDefault();
+  const input = overlay.querySelector('.lb-comment-input');
+  const body = input.value.trim();
+  if (!body) return;
+  const mediaId = list[idx].id;
+  input.value = '';
+  try {
+    const r = await fetch(`/api/media/${mediaId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    });
+    if (!r.ok) throw new Error();
+    const c = await r.json();
+    if (list[idx]?.id === mediaId) {
+      comments.push(c);
+      renderComments();
+    }
+  } catch {
+    input.value = body; // restore so the guest can retry
+    alert('Could not post your comment — try again.');
+  }
+}
+
+async function deleteComment(id) {
+  const r = await fetch(`/api/comments/${id}`, { method: 'DELETE' });
+  if (!r.ok) return;
+  comments = comments.filter((c) => c.id !== id);
+  renderComments();
 }
 
 function updateFavBtn(item) {
@@ -277,5 +393,6 @@ function close() {
   overlay.hidden = true;
   overlay.querySelector('.lb-stage').innerHTML = ''; // stops video playback
   document.body.classList.remove('lightbox-open');
+  setComments(false);
   onNavigate(null); // clear the #photo deep-link
 }

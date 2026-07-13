@@ -69,6 +69,26 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_reactions_media ON media_reactions(media_id);
 `);
 
+// Comments on media + a shared guestbook of notes to the couple
+db.exec(`
+  CREATE TABLE IF NOT EXISTS media_comments (
+    id         INTEGER PRIMARY KEY,
+    media_id   TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+    guest_id   INTEGER NOT NULL REFERENCES guests(id),
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_comments_media ON media_comments(media_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS notes (
+    id         INTEGER PRIMARY KEY,
+    guest_id   INTEGER NOT NULL REFERENCES guests(id),
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
+`);
+
 /** Generate a human-typable access code like "ROSE-7K3M" (no ambiguous 0/O/1/I). */
 export function generateCode() {
   const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
