@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>#LoveWins. The Aftermath</title>
+  <meta name="theme-color" content="#7b2d42" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
@@ -36,6 +39,7 @@
         <option value="taken-desc">Newest first</option>
         <option value="taken-asc">Oldest first</option>
         <option value="uploaded-desc">Recently uploaded</option>
+        <option value="loved">Most loved ♥</option>
       </select>
       <button id="selectBtn" class="btn-tool">Select</button>
       <button id="downloadAllBtn" class="btn-tool">Download all</button>
@@ -48,6 +52,8 @@
       <button id="selDownloadBtn" class="btn btn-bx">Download</button>
       <button id="selCancelBtn" class="btn-tool">Cancel</button>
     </div>
+
+    <button id="newBanner" class="new-banner" hidden></button>
 
     <main id="gallery" class="gallery">
       <p class="gallery-empty" id="galleryEmpty">Loading…</p>

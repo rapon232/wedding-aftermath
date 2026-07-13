@@ -2,7 +2,7 @@
 // in production the server also redirects unauthenticated page loads.
 
 import { initUploader } from './upload.js';
-import { initGallery, reload } from './gallery.js';
+import { initGallery, reload, maybeOpenFromHash } from './gallery.js';
 import { initAdmin } from './admin.js';
 
 async function init() {
@@ -10,6 +10,11 @@ async function init() {
   if (!me) {
     location.replace('/login.html');
     return;
+  }
+
+  // PWA: register the service worker so the site is installable to the home screen.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
   document.getElementById('welcome').textContent =
@@ -22,6 +27,9 @@ async function init() {
 
   initGallery(me);
   if (me.isAdmin) initAdmin(document.getElementById('adminBtn'));
+
+  // Deep link: /#photo=<id> opens straight into that item once the gallery is ready.
+  if (location.hash.includes('photo=')) setTimeout(maybeOpenFromHash, 400);
 
   // Refresh the grid shortly after uploads finish processing (debounced across a batch)
   let reloadTimer = null;

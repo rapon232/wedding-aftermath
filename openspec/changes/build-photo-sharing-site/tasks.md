@@ -92,14 +92,14 @@ Groups 11–12 introduce new capabilities — write/extend the matching spec und
 
 ## 11. UX polish & delight
 
-- [ ] 11.1 ★ "New since your last visit": per-guest last-seen marker + a count/badge surfacing fresh uploads (drives post-wedding re-engagement)
-- [ ] 11.2 ★ Day/session grouping: sticky date headers in the timeline ("Saturday · Ceremony", "Sunday · Brunch"), grouped by event-local date
-- [ ] 11.3 Favorites/reactions: per-guest ♥ tap + a "Most loved" filter (new `media_reactions` table)
-- [ ] 11.4 Optimistic upload: render the thumbnail immediately from a local object URL instead of waiting for the processing poll
-- [ ] 11.5 Deep links: `/#photo=<id>` opens straight into that item's lightbox (shareable between guests)
-- [ ] 11.6 PWA: web manifest + ♥ icon + service worker so it installs to the home screen and opens fullscreen
-- [ ] 11.7 Bulk-download progress: "preparing N photos…" feedback so a large zip doesn't feel hung
-- [ ] 11.8 Gesture niceties: pinch-to-zoom in the lightbox, double-tap to favorite
+- [x] 11.1 ★ "New since your last visit": per-guest last-seen marker + a count/badge surfacing fresh uploads (drives post-wedding re-engagement)
+- [x] 11.2 ★ Day/session grouping: sticky date headers in the timeline ("Saturday · Ceremony", "Sunday · Brunch"), grouped by event-local date
+- [x] 11.3 Favorites/reactions: per-guest ♥ tap + a "Most loved" filter (new `media_reactions` table)
+- [x] 11.4 Optimistic upload: render the thumbnail immediately from a local object URL instead of waiting for the processing poll
+- [x] 11.5 Deep links: `/#photo=<id>` opens straight into that item's lightbox (shareable between guests)
+- [x] 11.6 PWA: web manifest + ♥ icon + service worker so it installs to the home screen and opens fullscreen
+- [x] 11.7 Bulk-download progress: "preparing N photos…" feedback so a large zip doesn't feel hung
+- [x] 11.8 Gesture niceties: pinch-to-zoom in the lightbox, double-tap to favorite
 
 ## 12. Visual identity
 

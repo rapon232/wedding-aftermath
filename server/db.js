@@ -54,6 +54,20 @@ ensureColumn('media', 'duration_s', 'duration_s REAL');
 ensureColumn('media', 'pinned_at', 'pinned_at TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_media_pinned ON media(pinned_at)');
 
+// "New since your last visit" — updated after each gallery load (group 11.1)
+ensureColumn('guests', 'last_seen_at', 'last_seen_at TEXT');
+
+// Favorites / ♥ reactions (group 11.3)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS media_reactions (
+    media_id   TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+    guest_id   INTEGER NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (media_id, guest_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_reactions_media ON media_reactions(media_id);
+`);
+
 /** Generate a human-typable access code like "ROSE-7K3M" (no ambiguous 0/O/1/I). */
 export function generateCode() {
   const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

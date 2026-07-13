@@ -74,7 +74,21 @@ authRouter.post('/api/logout', (_req, res) => {
 });
 
 authRouter.get('/api/me', requireApi, (req, res) => {
-  res.json({ id: req.guest.id, name: req.guest.name, isAdmin: !!req.guest.is_admin, eventTz: config.eventTz });
+  // Return the *previous* last-seen so the gallery can compute "new since your
+  // last visit"; the client stamps a fresh timestamp via POST /api/seen after load.
+  const g = db.prepare('SELECT last_seen_at FROM guests WHERE id = ?').get(req.guest.id);
+  res.json({
+    id: req.guest.id,
+    name: req.guest.name,
+    isAdmin: !!req.guest.is_admin,
+    eventTz: config.eventTz,
+    lastSeen: g.last_seen_at || null,
+  });
+});
+
+authRouter.post('/api/seen', requireApi, (req, res) => {
+  db.prepare("UPDATE guests SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?").run(req.guest.id);
+  res.json({ ok: true });
 });
 
 // --- Admin: guest code management ---

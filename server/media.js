@@ -215,6 +215,25 @@ mediaRouter.post('/api/admin/media/:id/pin', requireAdmin, (req, res) => {
   res.json({ ok: true, pinned });
 });
 
+// --- Favorites / ♥ reactions (group 11.3) ---
+
+mediaRouter.post('/api/media/:id/favorite', requireApi, (req, res) => {
+  if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'bad id' });
+  const exists = db.prepare('SELECT 1 FROM media WHERE id = ?').get(req.params.id);
+  if (!exists) return res.status(404).json({ error: 'not found' });
+  const faved = req.body?.faved !== false; // default: favorite
+  if (faved) {
+    db.prepare('INSERT OR IGNORE INTO media_reactions (media_id, guest_id) VALUES (?, ?)').run(
+      req.params.id,
+      req.guest.id
+    );
+  } else {
+    db.prepare('DELETE FROM media_reactions WHERE media_id = ? AND guest_id = ?').run(req.params.id, req.guest.id);
+  }
+  const count = db.prepare('SELECT COUNT(*) AS n FROM media_reactions WHERE media_id = ?').get(req.params.id).n;
+  res.json({ ok: true, faved, count });
+});
+
 // --- Delete: own uploads, or anything as admin ---
 
 mediaRouter.delete('/api/media/:id', requireApi, (req, res) => {

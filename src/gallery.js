@@ -1,5 +1,6 @@
 // Gallery grid: cursor-paged listing, sort/filter toolbar synced to the URL,
-// lazy thumbnails, infinite scroll, lightbox hand-off.
+// lazy thumbnails, infinite scroll, day grouping, favorites, "new since last
+// visit", deep links, and lightbox hand-off.
 
 import { openLightbox, initLightbox } from './lightbox.js';
 
@@ -8,17 +9,21 @@ let state = { sort: 'taken-desc', type: '', uploader: '' };
 let items = [];
 let nextCursor = null;
 let loading = false;
-let fmt;
-let selectMode = false;
-const selected = new Set();
+let fmt; // time formatter
+let fmtDay; // day-header formatter
+let lastDayLabel = null; // tracks day-group boundaries during append
+let inEveryoneSection = false; // day headers only apply to the main (non-pinned) section
 
 const grid = () => document.getElementById('gallery');
 
 export function initGallery(user) {
   me = user;
+  const tz = me.eventTz || 'Europe/Rome';
   fmt = new Intl.DateTimeFormat('en-GB', {
-    timeZone: me.eventTz || 'Europe/Rome',
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone: tz, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
+  fmtDay = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz, weekday: 'long', day: 'numeric', month: 'long',
   });
 
   readStateFromUrl();
@@ -29,7 +34,9 @@ export function initGallery(user) {
     me,
     fmtDate: (iso) => fmt.format(new Date(iso)),
     onDeleted: removeItem,
-    onPinned: reload, // pin/unpin reshuffles ordering — simplest correct refresh
+    onPinned: reload,
+    onFaved: updateFavUi,
+    onNavigate: (item) => setHash(item?.id),
   });
 
   const sentinel = document.getElementById('sentinel');
@@ -40,6 +47,7 @@ export function initGallery(user) {
     { rootMargin: '600px' }
   ).observe(sentinel);
 
+  window.addEventListener('hashchange', maybeOpenFromHash);
   reload();
 }
 
@@ -47,6 +55,8 @@ export function initGallery(user) {
 export function reload() {
   items = [];
   nextCursor = null;
+  lastDayLabel = null;
+  inEveryoneSection = false;
   grid().innerHTML = '';
   setEmpty('Loading…');
   loadPage(true);
@@ -65,7 +75,8 @@ function syncUrl() {
   if (state.type) q.set('type', state.type);
   if (state.uploader) q.set('uploader', state.uploader);
   const qs = q.toString();
-  history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+  const hash = location.hash || '';
+  history.replaceState(null, '', (qs ? `?${qs}` : location.pathname) + hash);
 }
 
 function bindToolbar() {
@@ -111,6 +122,10 @@ function bindToolbar() {
   });
 }
 
+// --- Selection mode ---
+let selectMode = false;
+const selected = new Set();
+
 function setSelectMode(on) {
   selectMode = on;
   if (!on) selected.clear();
@@ -127,7 +142,7 @@ function updateSelectionUi() {
   }
 }
 
-/** Plain form POST so the browser streams the zip straight to disk (no JS buffering). */
+/** Plain form POST so the browser streams the zip straight to disk. Shows a brief prep toast. */
 function postDownload(fields) {
   const form = document.createElement('form');
   form.method = 'POST';
@@ -142,6 +157,7 @@ function postDownload(fields) {
   document.body.appendChild(form);
   form.submit();
   form.remove();
+  toast('Preparing your download… the zip will start shortly.');
 }
 
 async function loadUploaders() {
@@ -162,7 +178,7 @@ async function loadUploaders() {
 async function loadPage(first = false) {
   loading = true;
   const [sort, dir] = state.sort.split('-');
-  const q = new URLSearchParams({ sort, dir });
+  const q = new URLSearchParams({ sort, dir: dir || 'desc' });
   if (state.type) q.set('type', state.type);
   if (state.uploader) q.set('uploader', state.uploader);
   if (nextCursor) q.set('cursor', nextCursor);
@@ -172,24 +188,36 @@ async function loadPage(first = false) {
     if (r.status === 401) return location.replace('/login.html');
     const data = await r.json();
     nextCursor = data.nextCursor;
+
     if (first && data.totals) {
       const parts = [];
       if (data.totals.photo) parts.push(`${data.totals.photo} photo${data.totals.photo === 1 ? '' : 's'}`);
       if (data.totals.video) parts.push(`${data.totals.video} video${data.totals.video === 1 ? '' : 's'}`);
       document.getElementById('countLabel').textContent = parts.join(' · ');
     }
+    if (first && data.newCount) showNewBanner(data.newCount);
+
+    const grouped = state.sort.startsWith('taken');
     if (first && data.pinned?.length) {
       addSectionHeader('✦ Pinned');
-      appendItems(data.pinned);
+      appendItems(data.pinned, false);
       addSectionHeader('Everyone’s photos & videos');
     }
-    appendItems(data.items);
+    inEveryoneSection = true;
+    appendItems(data.items, grouped);
+
     const anything = (first ? data.pinned?.length : 0) || items.length;
     if (first && !anything) {
-      setEmpty('No memories here yet — be the first to share the day ♥');
+      setEmpty(
+        state.sort === 'loved'
+          ? 'No favorites yet — tap the ♥ on photos you love.'
+          : 'No memories here yet — be the first to share the day ♥'
+      );
     } else {
       setEmpty(null);
     }
+    // After the first successful load, stamp "seen" so the next visit compares against now.
+    if (first) fetch('/api/seen', { method: 'POST' }).catch(() => {});
   } catch {
     if (first) setEmpty('Could not load the gallery — check your connection and refresh.');
   } finally {
@@ -219,14 +247,28 @@ function addSectionHeader(text) {
   grid().appendChild(h);
 }
 
-function appendItems(newItems) {
+function appendItems(newItems, grouped) {
   const frag = document.createDocumentFragment();
   for (const item of newItems) {
+    if (grouped && inEveryoneSection && item.taken_at) {
+      const label = fmtDay.format(new Date(item.taken_at));
+      if (label !== lastDayLabel) {
+        lastDayLabel = label;
+        const h = document.createElement('h3');
+        h.className = 'day-header';
+        h.textContent = label;
+        frag.appendChild(h);
+      }
+    }
     const index = items.length;
     items.push(item);
     frag.appendChild(cell(item, index));
   }
   grid().appendChild(frag);
+}
+
+function isNew(item) {
+  return me.lastSeen && item.uploaded_at > me.lastSeen && item.uploader_id !== me.id;
 }
 
 function cell(item, index) {
@@ -241,6 +283,12 @@ function cell(item, index) {
     badge.className = 'cell-pin';
     badge.textContent = '✦';
     btn.appendChild(badge);
+  }
+  if (isNew(item)) {
+    const nb = document.createElement('span');
+    nb.className = 'cell-new';
+    nb.textContent = 'NEW';
+    btn.appendChild(nb);
   }
 
   const img = document.createElement('img');
@@ -263,6 +311,17 @@ function cell(item, index) {
     }
   }
 
+  // Favorite heart (bottom-left). Tapping it toggles without opening the lightbox.
+  const fav = document.createElement('span');
+  fav.className = 'cell-fav' + (item.faved ? ' faved' : '');
+  fav.innerHTML = `<span class="cell-fav-icon">♥</span><span class="cell-fav-n">${item.fav_count || ''}</span>`;
+  fav.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (selectMode) return;
+    toggleFavorite(item, fav);
+  });
+  btn.appendChild(fav);
+
   btn.addEventListener('click', () => {
     if (selectMode) {
       if (selected.has(item.id)) selected.delete(item.id);
@@ -277,6 +336,40 @@ function cell(item, index) {
   return btn;
 }
 
+async function toggleFavorite(item, favEl) {
+  const faved = !item.faved;
+  // optimistic
+  applyFav(item, faved, (item.fav_count || 0) + (faved ? 1 : -1));
+  favEl?.classList.toggle('faved', faved);
+  try {
+    const r = await fetch(`/api/media/${item.id}/favorite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ faved }),
+    });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    applyFav(item, d.faved, d.count);
+  } catch {
+    applyFav(item, !faved, item.fav_count); // revert
+    favEl?.classList.toggle('faved', !faved);
+  }
+}
+
+/** Keep the item model + its grid cell heart in sync (used by cell + lightbox callbacks). */
+function applyFav(item, faved, count) {
+  item.faved = faved ? 1 : 0;
+  item.fav_count = Math.max(0, count || 0);
+  const cellEl = grid().querySelector(`.cell[data-id="${item.id}"] .cell-fav`);
+  if (cellEl) {
+    cellEl.classList.toggle('faved', !!faved);
+    cellEl.querySelector('.cell-fav-n').textContent = item.fav_count || '';
+  }
+}
+function updateFavUi(item) {
+  applyFav(item, item.faved, item.fav_count);
+}
+
 function fmtDuration(s) {
   const m = Math.floor(s / 60);
   const sec = Math.round(s % 60);
@@ -287,7 +380,54 @@ function removeItem(id) {
   const i = items.findIndex((x) => x.id === id);
   if (i !== -1) items.splice(i, 1);
   grid().querySelector(`[data-id="${id}"]`)?.remove();
-  // Reindex remaining cells so lightbox navigation stays correct
   grid().querySelectorAll('.cell').forEach((el, idx) => (el.dataset.index = idx));
   if (!items.length) setEmpty('No memories here yet — be the first to share the day ♥');
+}
+
+// --- "New since your last visit" banner ---
+function showNewBanner(n) {
+  const bar = document.getElementById('newBanner');
+  if (!bar) return;
+  bar.textContent = `✨ ${n} new ${n === 1 ? 'memory' : 'memories'} since your last visit`;
+  bar.hidden = false;
+  bar.addEventListener('click', () => (bar.hidden = true), { once: true });
+}
+
+// --- Deep links: /#photo=<id> opens straight into the lightbox ---
+export function maybeOpenFromHash() {
+  const m = location.hash.match(/photo=([0-9a-f-]{36})/);
+  if (!m) return;
+  const id = m[1];
+  const idx = items.findIndex((x) => x.id === id);
+  if (idx !== -1) {
+    openLightbox(items, idx, { loadMore: () => (nextCursor && !loading ? loadPage() : null) });
+  } else {
+    // Not loaded yet (deep link to a specific item): fetch it and open a one-item view.
+    fetch(`/api/media/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((item) => {
+        if (item && item.status === 'ready') openLightbox([item], 0, {});
+      })
+      .catch(() => {});
+  }
+}
+function setHash(id) {
+  const base = location.pathname + location.search;
+  history.replaceState(null, '', id ? `${base}#photo=${id}` : base);
+}
+
+// --- Toast ---
+let toastTimer = null;
+export function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }

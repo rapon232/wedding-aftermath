@@ -5,6 +5,8 @@ let me;
 let fmtDate = (x) => x;
 let onDeleted = () => {};
 let onPinned = () => {};
+let onFaved = () => {};
+let onNavigate = () => {};
 let list = [];
 let idx = 0;
 let opts = {};
@@ -15,6 +17,8 @@ export function initLightbox(config) {
   fmtDate = config.fmtDate;
   onDeleted = config.onDeleted;
   onPinned = config.onPinned || (() => {});
+  onFaved = config.onFaved || (() => {});
+  onNavigate = config.onNavigate || (() => {});
 }
 
 export function openLightbox(items, index, o = {}) {
@@ -42,6 +46,7 @@ function build() {
         <span class="lb-date"></span>
       </div>
       <div class="lb-actions">
+        <button class="lb-fav btn-lb" aria-label="Favorite"><span class="lb-fav-icon">♥</span> <span class="lb-fav-n"></span></button>
         <button class="lb-pin btn-lb" hidden></button>
         <a class="lb-download btn-lb" download>Download</a>
         <button class="lb-delete btn-lb" hidden>Delete</button>
@@ -55,6 +60,7 @@ function build() {
   overlay.querySelector('.lb-next').addEventListener('click', () => step(1));
   overlay.querySelector('.lb-delete').addEventListener('click', del);
   overlay.querySelector('.lb-pin').addEventListener('click', togglePin);
+  overlay.querySelector('.lb-fav').addEventListener('click', toggleFav);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay || e.target.classList.contains('lb-stage')) close();
   });
@@ -66,20 +72,78 @@ function build() {
     else if (e.key === 'ArrowRight') step(1);
   });
 
-  // Swipe navigation (touch)
+  // Swipe navigation (touch) — disabled while an image is pinch/double-tap zoomed.
   let touchX = null;
-  overlay.addEventListener('touchstart', (e) => (touchX = e.touches[0].clientX), { passive: true });
+  overlay.addEventListener('touchstart', (e) => (touchX = e.touches.length === 1 ? e.touches[0].clientX : null), {
+    passive: true,
+  });
   overlay.addEventListener('touchend', (e) => {
-    if (touchX === null) return;
+    if (touchX === null || zoomed) return;
     const dx = e.changedTouches[0].clientX - touchX;
     touchX = null;
     if (Math.abs(dx) > 48) step(dx > 0 ? -1 : 1);
   });
 }
 
+// --- Pinch / double-tap zoom for photos (11.8) ---
+let zoomed = false;
+const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+function setupZoom(img) {
+  let scale = 1, tx = 0, ty = 0, startDist = 0, startScale = 1, lastTap = 0;
+  let panning = false, panX = 0, panY = 0;
+  const apply = () => {
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    zoomed = scale > 1;
+    img.style.cursor = scale > 1 ? 'grab' : '';
+  };
+  const reset = () => {
+    scale = 1;
+    tx = ty = 0;
+    apply();
+  };
+  img.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      startDist = touchDist(e.touches);
+      startScale = scale;
+    } else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        scale > 1 ? reset() : ((scale = 2.5), apply());
+        e.preventDefault();
+      }
+      lastTap = now;
+      if (scale > 1) {
+        panning = true;
+        panX = e.touches[0].clientX - tx;
+        panY = e.touches[0].clientY - ty;
+      }
+    }
+  }, { passive: false });
+  img.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      scale = Math.min(4, Math.max(1, startScale * (touchDist(e.touches) / startDist)));
+      if (scale === 1) tx = ty = 0;
+      apply();
+    } else if (panning && scale > 1) {
+      e.preventDefault();
+      tx = e.touches[0].clientX - panX;
+      ty = e.touches[0].clientY - panY;
+      apply();
+    }
+  }, { passive: false });
+  img.addEventListener('touchend', () => {
+    panning = false;
+    if (scale <= 1) reset();
+  });
+  img.addEventListener('dblclick', () => (scale > 1 ? reset() : ((scale = 2.5), apply())));
+}
+
 function show() {
   const item = list[idx];
   if (!item) return close();
+  zoomed = false;
   const stage = overlay.querySelector('.lb-stage');
   stage.innerHTML = '';
 
@@ -102,6 +166,7 @@ function show() {
     img.src = item.ext === 'gif' ? `/media/file/${item.id}` : `/media/preview/${item.id}`;
     img.alt = item.filename;
     stage.appendChild(img);
+    setupZoom(img);
   }
 
   overlay.querySelector('.lb-by').textContent = `by ${item.uploader_name}`;
@@ -111,9 +176,11 @@ function show() {
   const pinBtn = overlay.querySelector('.lb-pin');
   pinBtn.hidden = !me.isAdmin;
   pinBtn.textContent = item.pinned_at ? '✦ Unpin' : '✦ Pin';
+  updateFavBtn(item);
   overlay.querySelector('.lb-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   overlay.querySelector('.lb-next').style.visibility =
     idx < list.length - 1 || opts.loadMore ? 'visible' : 'hidden';
+  onNavigate(item);
 
   // Preload neighbouring photo previews for instant navigation
   for (const n of [idx - 1, idx + 1]) {
@@ -158,6 +225,38 @@ function showVideoFallback(stage, item) {
   stage.appendChild(box);
 }
 
+function updateFavBtn(item) {
+  const btn = overlay.querySelector('.lb-fav');
+  btn.classList.toggle('faved', !!item.faved);
+  btn.querySelector('.lb-fav-n').textContent = item.fav_count || '';
+}
+
+async function toggleFav() {
+  const item = list[idx];
+  const faved = !item.faved;
+  // optimistic
+  item.faved = faved ? 1 : 0;
+  item.fav_count = Math.max(0, (item.fav_count || 0) + (faved ? 1 : -1));
+  updateFavBtn(item);
+  onFaved(item);
+  try {
+    const r = await fetch(`/api/media/${item.id}/favorite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ faved }),
+    });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    item.faved = d.faved ? 1 : 0;
+    item.fav_count = d.count;
+  } catch {
+    item.faved = faved ? 0 : 1; // revert
+    item.fav_count = Math.max(0, item.fav_count + (faved ? -1 : 1));
+  }
+  updateFavBtn(item);
+  onFaved(item);
+}
+
 async function togglePin() {
   const item = list[idx];
   const pinned = !item.pinned_at;
@@ -178,4 +277,5 @@ function close() {
   overlay.hidden = true;
   overlay.querySelector('.lb-stage').innerHTML = ''; // stops video playback
   document.body.classList.remove('lightbox-open');
+  onNavigate(null); // clear the #photo deep-link
 }

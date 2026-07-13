@@ -19,9 +19,11 @@ export const galleryRouter = express.Router();
 // --- Listing: keyset-paginated, sortable, filterable ---
 
 galleryRouter.get('/api/media', requireApi, (req, res) => {
+  const loved = req.query.sort === 'loved';
   const sortCol = req.query.sort === 'uploaded' ? 'uploaded_at' : 'taken_at';
   const dir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
   const limit = Math.min(Number(req.query.limit) || PAGE_DEFAULT, PAGE_MAX);
+  const gid = req.guest.id;
 
   // Base filters (status + type/uploader) apply to the paginated list, the pinned
   // set, and the totals alike.
@@ -36,43 +38,59 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
     baseParams.push(req.query.type);
   }
 
+  // NB: fav_count/faved subqueries introduce a leading `?` (the current guest id),
+  // so guest id is always the first bound parameter.
   const cols = `m.id, m.type, m.ext, m.filename, m.size, m.taken_at, m.uploaded_at,
-                m.width, m.height, m.duration_s, m.pinned_at, m.uploader_id, g.name AS uploader_name`;
+                m.width, m.height, m.duration_s, m.pinned_at, m.uploader_id, g.name AS uploader_name,
+                (SELECT COUNT(*) FROM media_reactions r WHERE r.media_id = m.id) AS fav_count,
+                EXISTS(SELECT 1 FROM media_reactions r WHERE r.media_id = m.id AND r.guest_id = ?) AS faved`;
 
   // Pinned items are shown separately at the top, so exclude them from the paged list.
   const listFilters = [...base, 'm.pinned_at IS NULL'];
   const listParams = [...baseParams];
-
-  // Keyset cursor: stable under concurrent inserts, no OFFSET scans
-  if (req.query.cursor) {
-    try {
-      const { v, id } = JSON.parse(Buffer.from(String(req.query.cursor), 'base64url').toString());
-      if (typeof v !== 'string' || typeof id !== 'string') throw new Error();
-      listFilters.push(
-        dir === 'DESC'
-          ? `(m.${sortCol} < ? OR (m.${sortCol} = ? AND m.id < ?))`
-          : `(m.${sortCol} > ? OR (m.${sortCol} = ? AND m.id > ?))`
-      );
-      listParams.push(v, v, id);
-    } catch {
-      return res.status(400).json({ error: 'bad cursor' });
-    }
-  }
-
-  const rows = db
-    .prepare(
-      `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
-       WHERE ${listFilters.join(' AND ')}
-       ORDER BY m.${sortCol} ${dir}, m.id ${dir}
-       LIMIT ?`
-    )
-    .all(...listParams, limit + 1);
-
   let nextCursor = null;
-  if (rows.length > limit) {
-    rows.length = limit;
-    const last = rows[rows.length - 1];
-    nextCursor = Buffer.from(JSON.stringify({ v: last[sortCol], id: last.id })).toString('base64url');
+  let rows;
+
+  if (loved) {
+    // "Most loved" is a highlight view: top items by favorite count, no infinite scroll.
+    rows = db
+      .prepare(
+        `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
+         WHERE ${listFilters.join(' AND ')}
+         ORDER BY fav_count DESC, m.taken_at DESC, m.id DESC
+         LIMIT ?`
+      )
+      .all(gid, ...listParams, PAGE_MAX);
+    rows = rows.filter((r) => r.fav_count > 0); // nothing loved yet → empty, not a random dump
+  } else {
+    // Keyset cursor: stable under concurrent inserts, no OFFSET scans
+    if (req.query.cursor) {
+      try {
+        const { v, id } = JSON.parse(Buffer.from(String(req.query.cursor), 'base64url').toString());
+        if (typeof v !== 'string' || typeof id !== 'string') throw new Error();
+        listFilters.push(
+          dir === 'DESC'
+            ? `(m.${sortCol} < ? OR (m.${sortCol} = ? AND m.id < ?))`
+            : `(m.${sortCol} > ? OR (m.${sortCol} = ? AND m.id > ?))`
+        );
+        listParams.push(v, v, id);
+      } catch {
+        return res.status(400).json({ error: 'bad cursor' });
+      }
+    }
+    rows = db
+      .prepare(
+        `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
+         WHERE ${listFilters.join(' AND ')}
+         ORDER BY m.${sortCol} ${dir}, m.id ${dir}
+         LIMIT ?`
+      )
+      .all(gid, ...listParams, limit + 1);
+    if (rows.length > limit) {
+      rows.length = limit;
+      const last = rows[rows.length - 1];
+      nextCursor = Buffer.from(JSON.stringify({ v: last[sortCol], id: last.id })).toString('base64url');
+    }
   }
 
   const body = { items: rows, nextCursor };
@@ -84,12 +102,24 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
          WHERE ${base.join(' AND ')} AND m.pinned_at IS NOT NULL
          ORDER BY m.pinned_at ASC, m.id ASC`
       )
-      .all(...baseParams);
+      .all(gid, ...baseParams);
     const totals = db
       .prepare(`SELECT m.type, COUNT(*) AS n FROM media m WHERE ${base.join(' AND ')} GROUP BY m.type`)
       .all(...baseParams)
       .reduce((acc, r) => ({ ...acc, [r.type]: r.n }), {});
     body.totals = { photo: totals.photo || 0, video: totals.video || 0 };
+
+    // "New since your last visit": count ready media uploaded after last-seen,
+    // excluding the guest's own uploads (their own aren't "new" to them).
+    const seen = db.prepare('SELECT last_seen_at FROM guests WHERE id = ?').get(gid).last_seen_at;
+    body.newCount = seen
+      ? db
+          .prepare(
+            `SELECT COUNT(*) AS n FROM media
+             WHERE status = 'ready' AND uploaded_at > ? AND uploader_id != ?`
+          )
+          .get(seen, gid).n
+      : 0;
   }
   res.json(body);
 });

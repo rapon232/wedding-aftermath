@@ -47,7 +47,9 @@ export function initUploader({ button, tray, onReady }) {
 
 function addFiles(fileList) {
   for (const file of fileList) {
-    items.push({ file, status: 'queued', progress: 0, error: null, id: null });
+    // Local preview thumbnail so the guest instantly sees what they're sending (optimistic UI).
+    const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    items.push({ file, status: 'queued', progress: 0, error: null, id: null, preview });
   }
   render();
   pump();
@@ -210,6 +212,13 @@ function render() {
   for (const item of items) {
     const li = document.createElement('li');
     li.className = `tray-item is-${item.status}`;
+    if (item.preview) {
+      const thumb = document.createElement('img');
+      thumb.className = 'tray-thumb';
+      thumb.src = item.preview;
+      thumb.alt = '';
+      li.appendChild(thumb);
+    }
     const name = document.createElement('span');
     name.className = 'tray-name';
     name.textContent = item.file.name;
