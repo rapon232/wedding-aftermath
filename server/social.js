@@ -1,7 +1,7 @@
 // Comments on media + a shared guestbook of notes to the couple.
 import express from 'express';
 import { db } from './db.js';
-import { requireApi } from './auth.js';
+import { requireApi, requireAdmin } from './auth.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_LEN = 1000;
@@ -67,9 +67,9 @@ socialRouter.delete('/api/comments/:id', requireApi, (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Guestbook notes to the couple (visible to everyone) ---
+// --- Private notes to the couple: anyone can leave one, only admins can read ---
 
-socialRouter.get('/api/notes', requireApi, (_req, res) => {
+socialRouter.get('/api/notes', requireAdmin, (_req, res) => {
   res.json(
     db
       .prepare(

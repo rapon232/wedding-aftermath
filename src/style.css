@@ -508,3 +508,16 @@ body.selecting .cell-fav { display: none; }
 .note-when { color: var(--text-muted); }
 .note-del { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: .8rem; }
 .note-del:hover { color: var(--bordeaux); }
+
+/* --- Private note states + send burst --- */
+.notes-card { position: relative; }
+.note-hint {
+  font-size: .78rem; color: var(--mint-dark); background: var(--mint-pale);
+  border: 1px solid var(--mint-light); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px;
+}
+.note-thanks { text-align: center; padding: 24px 8px 12px; }
+.note-thanks-title { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--bordeaux-dark); }
+.note-thanks-sub { font-size: .9rem; color: var(--text-muted); margin: 6px 0 18px; }
+.note-again { font-size: .8rem; }
+/* Burst centered on the notes card (overrides the login's viewport-fixed variant). */
+.burst.burst-center { position: absolute; left: 50%; top: 50%; }

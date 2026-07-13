@@ -52,20 +52,27 @@ test('comments require auth', async () => {
   assert.equal((await req(srv.base, 'GET', '/api/media/11111111-1111-1111-1111-111111111111/comments')).status, 401);
 });
 
-test('notes: guestbook add, list newest-first, IDOR-safe delete', async () => {
+test('notes: anyone leaves one, but only admins can read them', async () => {
   const n1 = await req(srv.base, 'POST', '/api/notes', { cookie: guest, json: { body: 'best day ever' } });
-  assert.equal(n1.status, 201);
+  assert.equal(n1.status, 201, 'a guest can leave a note');
   const n2 = await req(srv.base, 'POST', '/api/notes', { cookie: admin, json: { body: 'thank you all' } });
-  const list = await req(srv.base, 'GET', '/api/notes', { cookie: guest });
+
+  // A non-admin guest CANNOT read the wall.
+  assert.equal((await req(srv.base, 'GET', '/api/notes', { cookie: guest })).status, 403);
+
+  // The admin can, newest-first.
+  const list = await req(srv.base, 'GET', '/api/notes', { cookie: admin });
+  assert.equal(list.status, 200);
   assert.ok(list.data.length >= 2);
   assert.equal(list.data[0].id, n2.data.id, 'newest first');
-  // guest cannot delete admin's note
+
+  // guest cannot delete another's note; admin can delete any.
   assert.equal((await req(srv.base, 'DELETE', `/api/notes/${n2.data.id}`, { cookie: guest })).status, 403);
-  // guest can delete own
-  assert.equal((await req(srv.base, 'DELETE', `/api/notes/${n1.data.id}`, { cookie: guest })).status, 200);
+  assert.equal((await req(srv.base, 'DELETE', `/api/notes/${n1.data.id}`, { cookie: admin })).status, 200);
 });
 
 test('notes: empty rejected, auth required', async () => {
   assert.equal((await req(srv.base, 'POST', '/api/notes', { cookie: guest, json: { body: '' } })).status, 400);
+  assert.equal((await req(srv.base, 'POST', '/api/notes', { json: { body: 'x' } })).status, 401);
   assert.equal((await req(srv.base, 'GET', '/api/notes')).status, 401);
 });
