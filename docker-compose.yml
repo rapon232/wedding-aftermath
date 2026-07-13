@@ -1,0 +1,26 @@
+# Deploy on the Synology NAS behind the existing Cloudflare tunnel.
+# 1. cp .env.example .env  &&  edit .env  (set SESSION_SECRET at minimum)
+# 2. docker compose up -d --build
+# 3. Add a Cloudflare tunnel ingress:  aftermath.mitio.tech -> http://<nas>:${HOST_PORT}
+# 4. Grab the admin code once from:  docker compose logs | grep "access code"
+
+services:
+  aftermath:
+    build: .
+    image: wedding-aftermath
+    container_name: aftermath
+    restart: unless-stopped
+    ports:
+      # host:container — point the Cloudflare tunnel at HOST_PORT on the NAS
+      - "${HOST_PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /data
+      NODE_ENV: production
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      ADMIN_NAME: ${ADMIN_NAME:-Mitio}
+      EVENT_TZ: ${EVENT_TZ:-Europe/Rome}
+    volumes:
+      # All state (originals, thumbs, previews, posters, db.sqlite) lives here.
+      # Back up this one folder and everything survives.
+      - ${DATA_PATH:-./aftermath-data}:/data
