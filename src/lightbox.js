@@ -11,6 +11,7 @@ let list = [];
 let idx = 0;
 let opts = {};
 let overlay = null;
+let soundOn = false; // once a guest taps for sound, later videos try to start unmuted
 
 export function initLightbox(config) {
   me = config.me;
@@ -48,8 +49,8 @@ function build() {
       <div class="lb-actions">
         <button class="lb-fav btn-lb" aria-label="Favorite"><span class="lb-fav-icon">♥</span> <span class="lb-fav-n"></span></button>
         <button class="lb-comment btn-lb" aria-label="Comments">💬 <span class="lb-comment-n"></span></button>
-        <button class="lb-pin btn-lb" hidden></button>
-        <a class="lb-download btn-lb" download>Download</a>
+        <button class="lb-pin btn-lb" aria-label="Pin" hidden>📌</button>
+        <a class="lb-download btn-lb" download>Save</a>
         <button class="lb-delete btn-lb" hidden>Delete</button>
       </div>
     </div>
@@ -171,7 +172,7 @@ function show() {
     const video = document.createElement('video');
     video.controls = true;
     video.autoplay = true;
-    video.muted = true; // Android/Chrome only autoplay muted; user can unmute
+    video.muted = true; // browsers only autoplay muted
     video.playsInline = true;
     video.preload = 'metadata';
     video.poster = `/media/poster/${item.id}`;
@@ -180,6 +181,30 @@ function show() {
     // Fall back to the poster + a download prompt instead of a black box.
     video.addEventListener('error', () => showVideoFallback(stage, item), { once: true });
     stage.appendChild(video);
+
+    // Muted-autoplay needs a tap for sound. Show an unmute pill until the user
+    // enables audio (via this button or the native volume control); remember the
+    // choice so later videos start with sound where the browser allows it.
+    const unmute = document.createElement('button');
+    unmute.className = 'lb-unmute';
+    unmute.innerHTML = '🔇 Tap for sound';
+    const enableSound = () => {
+      video.muted = false;
+      video.volume = 1;
+      soundOn = true;
+    };
+    unmute.addEventListener('click', (e) => {
+      e.stopPropagation();
+      enableSound();
+    });
+    video.addEventListener('volumechange', () => {
+      unmute.style.display = video.muted ? '' : 'none';
+    });
+    stage.appendChild(unmute);
+    if (soundOn) {
+      // A prior tap this session usually lets us start unmuted.
+      video.addEventListener('canplay', enableSound, { once: true });
+    }
   } else {
     const img = document.createElement('img');
     // Animated GIFs lose animation in the static preview — show the original
@@ -195,7 +220,8 @@ function show() {
   overlay.querySelector('.lb-delete').hidden = !(me.isAdmin || item.uploader_id === me.id);
   const pinBtn = overlay.querySelector('.lb-pin');
   pinBtn.hidden = !me.isAdmin;
-  pinBtn.textContent = item.pinned_at ? '✦ Unpin' : '✦ Pin';
+  pinBtn.classList.toggle('active', !!item.pinned_at);
+  pinBtn.setAttribute('aria-label', item.pinned_at ? 'Unpin' : 'Pin');
   updateFavBtn(item);
   setComments(false); // collapse panel on every item change
   overlay.querySelector('.lb-comment-n').textContent = '';

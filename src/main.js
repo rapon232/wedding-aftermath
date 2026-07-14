@@ -19,7 +19,7 @@ async function init() {
   }
 
   document.getElementById('welcome').textContent =
-    `Hi ${me.name} — share your photos & videos from our wedding. We want to experience the party from your point of view 🔥`;
+    `Hi ${me.name}, share your photos & videos from our wedding. We want to experience the party from your point of view 🔥`;
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await fetch('/api/logout', { method: 'POST' });
