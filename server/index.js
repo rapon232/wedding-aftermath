@@ -9,6 +9,7 @@ import { mediaRouter } from './media.js';
 import { galleryRouter } from './gallery.js';
 import { downloadRouter } from './download.js';
 import { socialRouter } from './social.js';
+import { sseHandler } from './events.js';
 import { requeueUnprocessed } from './processing.js';
 import { integritySweep, diskInfo } from './maintenance.js';
 
@@ -65,6 +66,11 @@ app.get('/api/health', (_req, res) => {
     uptimeSec: Math.round(process.uptime()),
     diskFreeGb: disk ? +(disk.freeBytes / 1e9).toFixed(1) : null,
   });
+});
+
+app.get('/api/events', loadGuest, (req, res) => {
+  if (!req.guest) return res.status(401).end();
+  sseHandler(req, res);
 });
 
 app.use(authRouter);

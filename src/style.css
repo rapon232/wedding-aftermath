@@ -546,3 +546,15 @@ body.selecting .cell-fav { display: none; }
 .note-again { font-size: .8rem; }
 /* Burst centered on the notes card (overrides the login's viewport-fixed variant). */
 .burst.burst-center { position: absolute; left: 50%; top: 50%; }
+
+/* Live "new uploads" pill (shown when new media arrives while scrolled down) */
+.live-pill {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60;
+  font-family: 'DM Sans', sans-serif; font-size: .8rem; font-weight: 600; cursor: pointer;
+  color: #fff; background: var(--bordeaux); border: none; border-radius: 100px;
+  padding: 9px 18px; box-shadow: var(--shadow-lg);
+  animation: live-pop .25s ease;
+}
+.live-pill:hover { background: var(--bordeaux-dark); }
+@keyframes live-pop { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .live-pill { animation: none; } }

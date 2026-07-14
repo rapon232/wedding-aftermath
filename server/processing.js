@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import exifr from 'exifr';
 import { db } from './db.js';
 import { config, dirs } from './config.js';
+import { broadcast } from './events.js';
 
 const execFileP = promisify(execFile);
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
@@ -53,6 +54,7 @@ async function processMedia(id) {
       `UPDATE media SET status = 'ready', width = ?, height = ?, duration_s = ?,
        taken_at = COALESCE(?, taken_at) WHERE id = ?`
     ).run(info.width ?? null, info.height ?? null, info.duration ?? null, info.takenAt ?? null, id);
+    broadcast({ type: 'ready', id }); // push to open galleries so it appears live
   } catch (err) {
     console.error(`processing failed for ${id} (${m.filename}):`, err.message);
     db.prepare("UPDATE media SET status = 'failed' WHERE id = ?").run(id);

@@ -49,12 +49,70 @@ export function initGallery(user) {
   ).observe(sentinel);
 
   window.addEventListener('hashchange', maybeOpenFromHash);
+  initLive();
   reload();
+}
+
+// --- Live updates (Server-Sent Events): new uploads appear on their own ---
+let liveNew = 0;
+let liveTimer = null;
+
+function initLive() {
+  let es;
+  const connect = () => {
+    es = new EventSource('/api/events');
+    es.onmessage = (e) => {
+      let d;
+      try {
+        d = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+      if (d.type === 'deleted') return removeItem(d.id); // someone deleted it → sync
+      if (d.type === 'ready' && items.some((x) => x.id === d.id)) return; // already shown
+
+      // New content is available. If the viewer is at the top and not busy, just
+      // refresh so it appears; otherwise show a gentle pill so we don't yank scroll.
+      const busy =
+        document.body.classList.contains('lightbox-open') ||
+        document.body.classList.contains('selecting');
+      if (window.scrollY < 300 && !busy) {
+        clearTimeout(liveTimer);
+        liveTimer = setTimeout(reload, 1000); // debounce bursts of uploads
+      } else {
+        liveNew++;
+        showLivePill();
+      }
+    };
+    es.onerror = () => {}; // EventSource reconnects automatically
+  };
+  connect();
+}
+
+function showLivePill() {
+  let el = document.getElementById('livePill');
+  if (!el) {
+    el = document.createElement('button');
+    el.id = 'livePill';
+    el.className = 'live-pill';
+    el.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      reload();
+    });
+    document.body.appendChild(el);
+  }
+  el.textContent = `✨ ${liveNew} new — tap to see`;
+}
+
+function clearLivePill() {
+  liveNew = 0;
+  document.getElementById('livePill')?.remove();
 }
 
 /** Full refresh (initial load, filter change, new upload finished). */
 export function reload() {
   loadGen++; // invalidate any in-flight loadPage so its response is discarded
+  clearLivePill();
   items.length = 0; // mutate in place — keep the array identity the lightbox references
   nextCursor = null;
   lastDayLabel = null;

@@ -8,6 +8,7 @@ import { db } from './db.js';
 import { config, dirs } from './config.js';
 import { requireApi, requireAdmin } from './auth.js';
 import { enqueue } from './processing.js';
+import { broadcast } from './events.js';
 
 const PHOTO_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif']);
 const VIDEO_EXT = new Set(['mp4', 'mov', 'm4v']);
@@ -277,6 +278,7 @@ mediaRouter.post('/api/admin/media/:id/pin', requireAdmin, (req, res) => {
     pinned ? new Date().toISOString() : null,
     req.params.id
   );
+  broadcast({ type: 'refresh' }); // pinning reorders the gallery for everyone
   res.json({ ok: true, pinned });
 });
 
@@ -307,6 +309,7 @@ mediaRouter.delete('/api/media/:id', requireApi, (req, res) => {
   if (m.uploader_id !== req.guest.id && !req.guest.is_admin) return res.status(403).json({ error: 'forbidden' });
   for (const p of Object.values(mediaFilePaths(m))) fs.rmSync(p, { force: true });
   db.prepare('DELETE FROM media WHERE id = ?').run(m.id);
+  broadcast({ type: 'deleted', id: m.id });
   res.json({ ok: true });
 });
 
