@@ -20,6 +20,7 @@ export const galleryRouter = express.Router();
 
 galleryRouter.get('/api/media', requireApi, (req, res) => {
   const loved = req.query.sort === 'loved';
+  const commented = req.query.sort === 'commented';
   const sortCol = req.query.sort === 'uploaded' ? 'uploaded_at' : 'taken_at';
   const dir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
   // Clamp to a sane integer: guards against ?limit=-5 (SQLite LIMIT -1 = all rows)
@@ -45,6 +46,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
   const cols = `m.id, m.type, m.ext, m.filename, m.size, m.taken_at, m.uploaded_at,
                 m.width, m.height, m.duration_s, m.pinned_at, m.uploader_id, g.name AS uploader_name,
                 (SELECT COUNT(*) FROM media_reactions r WHERE r.media_id = m.id) AS fav_count,
+                (SELECT COUNT(*) FROM media_comments c WHERE c.media_id = m.id) AS comment_count,
                 EXISTS(SELECT 1 FROM media_reactions r WHERE r.media_id = m.id AND r.guest_id = ?) AS faved`;
 
   // Pinned items are shown separately at the top, so exclude them from the paged list.
@@ -53,17 +55,18 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
   let nextCursor = null;
   let rows;
 
-  if (loved) {
-    // "Most loved" is a highlight view: top items by favorite count, no infinite scroll.
+  if (loved || commented) {
+    // Highlight views: top items by favorite / comment count, no infinite scroll.
+    const metric = loved ? 'fav_count' : 'comment_count';
     rows = db
       .prepare(
         `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
          WHERE ${listFilters.join(' AND ')}
-         ORDER BY fav_count DESC, m.taken_at DESC, m.id DESC
+         ORDER BY ${metric} DESC, m.taken_at DESC, m.id DESC
          LIMIT ?`
       )
       .all(gid, ...listParams, PAGE_MAX);
-    rows = rows.filter((r) => r.fav_count > 0); // nothing loved yet → empty, not a random dump
+    rows = rows.filter((r) => r[metric] > 0); // nothing yet → empty, not a random dump
   } else {
     // Keyset cursor: stable under concurrent inserts, no OFFSET scans
     if (req.query.cursor) {

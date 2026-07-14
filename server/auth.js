@@ -120,18 +120,24 @@ authRouter.get('/api/admin/guests', requireAdmin, (_req, res) => {
 
 authRouter.post('/api/admin/guests', requireAdmin, (req, res) => {
   const names = Array.isArray(req.body?.names) ? req.body.names : [req.body?.name];
-  const clean = names
-    .map((n) => String(n || '').trim().slice(0, 100))
-    .filter(Boolean);
+  const clean = names.map((n) => String(n || '').trim().slice(0, 100)).filter(Boolean);
   if (!clean.length) return res.status(400).json({ error: 'name(s) required' });
+  // Skip names that already exist (case-insensitive) so we don't create duplicates.
+  const existing = new Set(db.prepare('SELECT lower(name) AS n FROM guests').all().map((r) => r.n));
   const insert = db.prepare('INSERT INTO guests (code, name) VALUES (?, ?)');
-  const created = db.transaction(() =>
-    clean.map((name) => {
+  const created = [];
+  let skipped = 0;
+  db.transaction(() => {
+    for (const name of clean) {
+      const key = name.toLowerCase();
+      if (existing.has(key)) { skipped++; continue; }
+      existing.add(key);
       const code = generateCode();
       const { lastInsertRowid } = insert.run(code, name);
-      return { id: Number(lastInsertRowid), name, code };
-    })
-  )();
+      created.push({ id: Number(lastInsertRowid), name, code });
+    }
+  })();
+  // Return the created guests as an array (only the new ones; dupes are skipped).
   res.status(201).json(created);
 });
 
@@ -178,6 +184,7 @@ authRouter.post('/api/admin/import', requireAdmin, (req, res) => {
   const existing = new Set(
     db.prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL').all().map((r) => r.e)
   );
+  const existingNames = new Set(db.prepare('SELECT lower(name) AS n FROM guests').all().map((r) => r.n));
   const insert = db.prepare('INSERT INTO guests (code, name, email) VALUES (?, ?, ?)');
   const created = [];
   let skipped = 0;
@@ -185,11 +192,13 @@ authRouter.post('/api/admin/import', requireAdmin, (req, res) => {
     for (const r of rows) {
       const name = String(r.name || '').trim().slice(0, 100);
       const email = String(r.email || '').trim().toLowerCase();
-      if (!name || !isEmail(email) || existing.has(email)) {
+      // Skip invalid/duplicate email OR a name that already exists.
+      if (!name || !isEmail(email) || existing.has(email) || existingNames.has(name.toLowerCase())) {
         skipped++;
         continue;
       }
       existing.add(email);
+      existingNames.add(name.toLowerCase());
       const code = generateCode();
       const { lastInsertRowid } = insert.run(code, name, email);
       created.push({ id: Number(lastInsertRowid), name, email, code });

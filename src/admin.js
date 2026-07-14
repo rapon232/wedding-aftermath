@@ -169,8 +169,9 @@ async function createCodes() {
   });
   if (!r.ok) return flash('Could not create codes');
   const created = await r.json();
+  const skipped = names.length - created.length;
   textarea.value = '';
-  flash(`Created ${created.length} code${created.length === 1 ? '' : 's'}`);
+  flash(`Created ${created.length} code${created.length === 1 ? '' : 's'}${skipped > 0 ? `, skipped ${skipped} (existing name)` : ''}`);
   refresh();
 }
 

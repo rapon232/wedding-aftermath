@@ -31,6 +31,14 @@ test('CSV import auto-detects semicolon delimiter (Numbers/Excel export) + BOM',
   assert.equal(r.data.created[0].email, 'semi1@example.com');
 });
 
+test('creating a guest with an existing name is skipped (no duplicate)', async () => {
+  const first = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Unique Uma'] } });
+  assert.equal(first.data.length, 1);
+  const dupe = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['unique uma', 'Brand New'] } });
+  assert.equal(dupe.data.length, 1, 'only the new name is created; the existing one is skipped');
+  assert.equal(dupe.data[0].name, 'Brand New');
+});
+
 test('make-admin grants and revokes, but never removes the last admin', async () => {
   const g = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Deputy'] } });
   const id = g.data[0].id;

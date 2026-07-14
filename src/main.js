@@ -6,8 +6,17 @@ import { initGallery, reload, maybeOpenFromHash } from './gallery.js';
 import { initAdmin } from './admin.js';
 import { initNotes } from './notes.js';
 
+const getMe = () => fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
 async function init() {
-  const me = await fetch('/api/me').then((r) => (r.ok ? r.json() : null));
+  // Right after login the session cookie can lag the first navigation on some
+  // mobile browsers → /api/me 401s and we'd bounce back to login (needing a manual
+  // refresh). Retry once before giving up so login "just works".
+  let me = await getMe();
+  if (!me) {
+    await new Promise((r) => setTimeout(r, 500));
+    me = await getMe();
+  }
   if (!me) {
     location.replace('/login.html');
     return;

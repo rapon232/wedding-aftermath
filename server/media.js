@@ -325,6 +325,7 @@ mediaRouter.use((err, _req, res, _next) => {
   // Client aborted / truncated the multipart stream (flaky mobile connection).
   // It's not a server fault — return a retriable 4xx instead of a scary 500.
   if (err?.message === 'Unexpected end of form' || err?.code === 'ECONNRESET') {
+    console.warn(`upload truncated (${err.message || err.code}) ua="${_req.headers['user-agent'] || ''}" len=${_req.headers['content-length'] || '?'}`);
     return res.status(400).json({ error: 'upload interrupted — please retry' });
   }
   if (err?.status) return res.status(err.status).json({ error: err.message });

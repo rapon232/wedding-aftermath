@@ -182,6 +182,35 @@ function bindToolbar() {
     if (state.uploader) fields.uploader = state.uploader;
     postDownload(fields);
   });
+
+  // Admin-only bulk delete of the current selection.
+  const delBtn = document.getElementById('selDeleteBtn');
+  if (me.isAdmin) {
+    delBtn.hidden = false;
+    delBtn.addEventListener('click', deleteSelected);
+  }
+}
+
+async function deleteSelected() {
+  if (!selected.size) return;
+  const ids = [...selected];
+  if (!confirm(`Delete ${ids.length} selected item${ids.length === 1 ? '' : 's'}? This removes ${ids.length === 1 ? 'it' : 'them'} for everyone.`)) return;
+  // Delete with light concurrency; remove each from the grid as it goes.
+  let i = 0;
+  async function worker() {
+    while (i < ids.length) {
+      const id = ids[i++];
+      try {
+        const r = await fetch(`/api/media/${id}`, { method: 'DELETE' });
+        if (r.ok) removeItem(id);
+      } catch {
+        /* skip; live SSE 'deleted' will reconcile others */
+      }
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  setSelectMode(false);
+  toast('Deleted');
 }
 
 // --- Selection mode ---

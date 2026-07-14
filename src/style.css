@@ -573,3 +573,7 @@ body.selecting .cell-fav { display: none; }
 .btn-tool.btn-invite { border-color: var(--bordeaux-light); color: var(--bordeaux); }
 .btn-tool.btn-invite:hover { background: var(--bordeaux-pale); border-color: var(--bordeaux); color: var(--bordeaux-dark); }
 .btn-tool.btn-invited { color: var(--mint-dark); border-color: var(--mint-light); }
+
+/* Admin bulk-delete button in the selection bar */
+.btn-tool.btn-danger { color: var(--bordeaux); border-color: var(--bordeaux-light); }
+.btn-tool.btn-danger:hover { background: var(--bordeaux); color: #fff; border-color: var(--bordeaux); }
