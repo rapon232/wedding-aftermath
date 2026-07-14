@@ -237,6 +237,14 @@ body.lightbox-open { overflow: hidden; }
 .lb-by { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 1.05rem; color: #f7f3ee; }
 .lb-date { font-size: .78rem; color: rgba(247,243,238,.65); margin-left: 10px; }
 .lb-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Empty count → no extra flex item/gap, so the lone emoji stays centered. */
+.lb-fav-n:empty, .lb-comment-n:empty { display: none; }
+/* On phones, stack the caption so the actions get the full width as one row. */
+@media (max-width: 600px) {
+  .lb-caption { flex-direction: column; align-items: stretch; gap: 10px; }
+  .lb-actions { width: 100%; justify-content: center; flex-wrap: nowrap; gap: 6px; }
+  .btn-lb { padding: 0 12px; }
+}
 .btn-lb {
   font-family: 'DM Sans', sans-serif; font-size: .78rem; font-weight: 500; text-decoration: none;
   color: #f7f3ee; background: rgba(247,243,238,.14); border: none; border-radius: 10px;

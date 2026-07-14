@@ -47,8 +47,8 @@ function build() {
         <span class="lb-date"></span>
       </div>
       <div class="lb-actions">
-        <button class="lb-fav btn-lb" aria-label="Favorite"><span class="lb-fav-icon">♥</span> <span class="lb-fav-n"></span></button>
-        <button class="lb-comment btn-lb" aria-label="Comments">💬 <span class="lb-comment-n"></span></button>
+        <button class="lb-fav btn-lb" aria-label="Favorite"><span class="lb-fav-icon">♥</span><span class="lb-fav-n"></span></button>
+        <button class="lb-comment btn-lb" aria-label="Comments"><span>💬</span><span class="lb-comment-n"></span></button>
         <button class="lb-pin btn-lb" aria-label="Pin" hidden>📌</button>
         <a class="lb-download btn-lb" download>Save</a>
         <button class="lb-delete btn-lb" hidden>Delete</button>
