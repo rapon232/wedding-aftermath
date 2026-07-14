@@ -1,12 +1,24 @@
-// Upload module: file picker + drag-and-drop → queued XHR uploads with
-// per-file progress, retry, dedupe awareness, and processing status polling.
+// Upload module: file picker + drag-and-drop → queued uploads with per-file
+// progress, retry, dedupe awareness, and processing status polling.
+//
+// Mobile reliability notes:
+// - Progress updates paint in place (we never rebuild the tray DOM on every
+//   progress tick — that pegged the main thread and made Safari abort uploads,
+//   surfacing server-side as busboy "Unexpected end of form").
+// - Memory is bounded: at most one big (chunked) file uploads at a time.
+// - Requests time out and chunks retry, so a flaky connection self-heals.
 
-const CHUNK_THRESHOLD = 90 * 1024 * 1024; // above this, use the chunked path (Cloudflare body limit)
-const PARALLEL = 3; // simultaneous file uploads — fills the pipe without overwhelming mobile
-const CHUNK_PARALLEL = 3; // simultaneous chunks per big file (keeps the uplink busy)
+const CHUNK_THRESHOLD = 90 * 1024 * 1024; // above this → chunked path (Cloudflare body limit)
+const PARALLEL = 2; // simultaneous file uploads
+const MAX_BIG = 1; // of those, at most this many big/chunked files (caps mobile memory)
+const CHUNK_PARALLEL = 3; // simultaneous chunks within one big file
+const REQ_TIMEOUT = 120000; // per-request timeout (ms)
+const CHUNK_RETRIES = 2; // per-chunk retry attempts on transient failure
+const AUTO_RETRIES = 1; // auto re-attempt a failed file this many times before showing Retry
 
 let items = [];
 let activeCount = 0;
+let activeBig = 0;
 let trayEl = null;
 let onMediaReady = () => {};
 
@@ -46,11 +58,12 @@ export function initUploader({ button, tray, onReady }) {
   });
 }
 
+const isBig = (item) => item.file.size > CHUNK_THRESHOLD;
+
 function addFiles(fileList) {
   for (const file of fileList) {
-    // Local preview thumbnail so the guest instantly sees what they're sending (optimistic UI).
     const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
-    items.push({ file, status: 'queued', progress: 0, error: null, id: null, preview });
+    items.push({ file, status: 'queued', progress: 0, error: null, id: null, preview, attempts: 0 });
   }
   render();
   pump();
@@ -58,11 +71,15 @@ function addFiles(fileList) {
 
 function pump() {
   while (activeCount < PARALLEL) {
-    const item = items.find((i) => i.status === 'queued');
+    // Start the next queued file — but hold big files back to MAX_BIG at a time.
+    const item = items.find((i) => i.status === 'queued' && (!isBig(i) || activeBig < MAX_BIG));
     if (!item) break;
+    const big = isBig(item);
     activeCount++;
+    if (big) activeBig++;
     uploadItem(item).finally(() => {
       activeCount--;
+      if (big) activeBig--;
       pump();
     });
   }
@@ -74,12 +91,10 @@ async function uploadItem(item) {
   item.error = null;
   render();
   try {
-    const result =
-      item.file.size > CHUNK_THRESHOLD ? await uploadChunked(item) : await uploadSimple(item);
+    const result = isBig(item) ? await uploadChunked(item) : await uploadSimple(item);
     item.id = result.id;
-    if (result.duplicate) {
-      item.status = 'duplicate';
-    } else if (result.status === 'ready') {
+    if (result.duplicate) item.status = 'duplicate';
+    else if (result.status === 'ready') {
       item.status = 'done';
       onMediaReady(result.id);
     } else {
@@ -87,11 +102,17 @@ async function uploadItem(item) {
       pollStatus(item);
     }
   } catch (err) {
-    item.status = 'failed';
-    item.error = err.message || 'upload failed';
+    // Transient failure? Quietly re-queue a couple times before bothering the user.
+    if (item.attempts < AUTO_RETRIES) {
+      item.attempts++;
+      item.status = 'queued';
+      item.error = null;
+      setTimeout(pump, 800 * item.attempts);
+    } else {
+      item.status = 'failed';
+      item.error = err.message || 'upload failed';
+    }
   }
-  // Free the local preview blob once the bytes are safely uploaded (not on failure —
-  // the file may be retried). Prevents object-URL memory piling up over a big batch.
   if (item.preview && ['done', 'duplicate', 'processing'].includes(item.status)) {
     URL.revokeObjectURL(item.preview);
     item.preview = null;
@@ -104,7 +125,7 @@ function uploadSimple(item) {
   form.append('file', item.file);
   return xhr('POST', '/api/upload', form, (frac) => {
     item.progress = frac;
-    render();
+    paintProgress();
   });
 }
 
@@ -113,31 +134,40 @@ async function uploadChunked(item) {
   const { uploadId, chunkSize } = init;
   const total = item.file.size;
   const nChunks = Math.ceil(total / chunkSize);
-  const sentBytes = new Array(nChunks).fill(0); // per-chunk progress
-  const updateProgress = () => {
+  const sentBytes = new Array(nChunks).fill(0);
+  const paint = () => {
     item.progress = sentBytes.reduce((a, b) => a + b, 0) / total;
-    render();
+    paintProgress();
   };
 
-  // Upload several chunks at once so the uplink stays saturated on a
-  // high-latency link (server writes each at its byte offset, any order).
   let next = 0;
   async function worker() {
     while (next < nChunks) {
       const index = next++;
       const start = index * chunkSize;
       const blob = item.file.slice(start, Math.min(start + chunkSize, total));
-      await xhr('POST', `/api/upload/${uploadId}/chunk?index=${index}`, blob, (frac) => {
+      await sendChunk(uploadId, index, blob, (frac) => {
         sentBytes[index] = frac * blob.size;
-        updateProgress();
+        paint();
       });
       sentBytes[index] = blob.size;
-      updateProgress();
+      paint();
     }
   }
   await Promise.all(Array.from({ length: Math.min(CHUNK_PARALLEL, nChunks) }, worker));
-
   return jsonFetch(`/api/upload/${uploadId}/finish`, {});
+}
+
+// One chunk, with a couple of retries — server writes are idempotent per index.
+async function sendChunk(uploadId, index, blob, onProgress) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await xhr('POST', `/api/upload/${uploadId}/chunk?index=${index}`, blob, onProgress);
+    } catch (err) {
+      if (attempt >= CHUNK_RETRIES) throw err;
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
 }
 
 function pollStatus(item, delay = 2000) {
@@ -169,6 +199,7 @@ function xhr(method, url, body, onProgress) {
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open(method, url);
+    x.timeout = REQ_TIMEOUT;
     x.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
     });
@@ -184,6 +215,7 @@ function xhr(method, url, body, onProgress) {
     });
     x.addEventListener('error', () => reject(new Error('connection lost')));
     x.addEventListener('timeout', () => reject(new Error('timed out')));
+    x.addEventListener('abort', () => reject(new Error('aborted')));
     x.send(body);
   });
 }
@@ -210,18 +242,41 @@ const STATUS_LABEL = {
   failed: 'Failed',
 };
 
+// Lightweight in-place progress paint (coalesced to one per frame). Never rebuilds
+// the DOM — just nudges the % text and bar width of files that are uploading.
+let paintScheduled = false;
+function paintProgress() {
+  if (paintScheduled) return;
+  paintScheduled = true;
+  requestAnimationFrame(() => {
+    paintScheduled = false;
+    for (const item of items) {
+      if (item.status !== 'uploading' || !item._statusEl) continue;
+      const pct = Math.round(item.progress * 100);
+      item._statusEl.textContent = `${pct}%`;
+      if (item._barFill) item._barFill.style.width = `${pct}%`;
+    }
+  });
+}
+
+// Full rebuild — only on structural changes (add/remove, status transitions).
 function render() {
   if (!trayEl) return;
+  document.body.classList.toggle(
+    'uploading',
+    items.some((i) => ['queued', 'uploading', 'processing'].includes(i.status))
+  );
   const visible = items.length > 0;
   trayEl.hidden = !visible;
   if (!visible) return;
 
   const doneCount = items.filter((i) => ['done', 'duplicate'].includes(i.status)).length;
+  const busy = items.some((i) => ['queued', 'uploading', 'processing'].includes(i.status));
   trayEl.innerHTML = `
     <div class="tray-head">
       <strong>Uploads</strong>
       <span>${doneCount}/${items.length}</span>
-      <button class="tray-clear" ${items.some((i) => ['queued', 'uploading', 'processing'].includes(i.status)) ? 'disabled' : ''}>Clear</button>
+      <button class="tray-clear" ${busy ? 'disabled' : ''}>Clear</button>
     </div>
     <ul class="tray-list"></ul>
   `;
@@ -237,8 +292,6 @@ function render() {
     if (item.preview) {
       const thumb = document.createElement('img');
       thumb.className = 'tray-thumb';
-      // Lazy + async decode: with a big multi-select, only the handful of visible
-      // tray thumbnails decode (HEIC decode is expensive) — no jank on "OK".
       thumb.loading = 'lazy';
       thumb.decoding = 'async';
       thumb.src = item.preview;
@@ -255,12 +308,17 @@ function render() {
         ? `${Math.round(item.progress * 100)}%`
         : item.error || STATUS_LABEL[item.status];
     li.append(name, status);
+    item._statusEl = status; // ref for in-place progress paints
+    item._barFill = null;
+
     if (item.status === 'failed') {
       const retry = document.createElement('button');
       retry.className = 'tray-retry';
       retry.textContent = 'Retry';
       retry.addEventListener('click', () => {
+        item.attempts = 0;
         item.status = 'queued';
+        item.error = null;
         render();
         pump();
       });
@@ -269,8 +327,12 @@ function render() {
     if (item.status === 'uploading') {
       const bar = document.createElement('div');
       bar.className = 'tray-bar';
-      bar.innerHTML = `<div class="tray-bar-fill" style="width:${Math.round(item.progress * 100)}%"></div>`;
+      const fill = document.createElement('div');
+      fill.className = 'tray-bar-fill';
+      fill.style.width = `${Math.round(item.progress * 100)}%`;
+      bar.appendChild(fill);
       li.appendChild(bar);
+      item._barFill = fill; // ref for in-place progress paints
     }
     list.appendChild(li);
   }

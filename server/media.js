@@ -13,9 +13,9 @@ import { broadcast } from './events.js';
 const PHOTO_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif']);
 const VIDEO_EXT = new Set(['mp4', 'mov', 'm4v']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-// Chunks stay under Cloudflare's ~100 MB per-request body limit, but large enough
-// to minimize round-trips on big videos over a long-haul link. Overridable for tests.
-export const CHUNK_SIZE = Number(process.env.CHUNK_SIZE_BYTES) || 64 * 1024 * 1024;
+// Chunk size: big enough to minimize round-trips, small enough that a few
+// parallel chunks don't blow up mobile memory. Overridable for tests.
+export const CHUNK_SIZE = Number(process.env.CHUNK_SIZE_BYTES) || 32 * 1024 * 1024;
 
 function httpError(status, message) {
   const e = new Error(message);
@@ -230,7 +230,13 @@ mediaRouter.post(
     } catch (err) {
       return next(err);
     }
-    s.received += req.body.length;
+    // Count each chunk's bytes once, even if a flaky client retries it — otherwise
+    // a re-sent chunk would over-count and the finish size check would fail.
+    if (!s.seen) s.seen = new Set();
+    if (!s.seen.has(index)) {
+      s.seen.add(index);
+      s.received += req.body.length;
+    }
     s.touchedAt = Date.now();
     res.json({ received: s.received });
   }
@@ -316,6 +322,11 @@ mediaRouter.delete('/api/media/:id', requireApi, (req, res) => {
 // Router-scoped error handler: multer + upload errors become clean JSON.
 mediaRouter.use((err, _req, res, _next) => {
   if (err?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'file too large (max 2 GB)' });
+  // Client aborted / truncated the multipart stream (flaky mobile connection).
+  // It's not a server fault — return a retriable 4xx instead of a scary 500.
+  if (err?.message === 'Unexpected end of form' || err?.code === 'ECONNRESET') {
+    return res.status(400).json({ error: 'upload interrupted — please retry' });
+  }
   if (err?.status) return res.status(err.status).json({ error: err.message });
   console.error('upload error:', err);
   res.status(500).json({ error: 'upload failed' });

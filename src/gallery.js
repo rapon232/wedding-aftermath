@@ -75,7 +75,8 @@ function initLive() {
       // refresh so it appears; otherwise show a gentle pill so we don't yank scroll.
       const busy =
         document.body.classList.contains('lightbox-open') ||
-        document.body.classList.contains('selecting');
+        document.body.classList.contains('selecting') ||
+        document.body.classList.contains('uploading'); // don't refetch mid-upload
       if (window.scrollY < 300 && !busy) {
         clearTimeout(liveTimer);
         liveTimer = setTimeout(reload, 1000); // debounce bursts of uploads
@@ -304,6 +305,20 @@ function setEmpty(text) {
   el.textContent = text;
 }
 
+// The wedding weekend's day names (interpreted in event tz).
+const EVENT_DAYS = {
+  Thursday: ' · 🕊️ White Dinner Day',
+  Friday: ' · 💍 Wedding Day',
+  Saturday: ' · ✨ Pool Day',
+};
+function eventLabel(iso) {
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: me.eventTz || 'Europe/Rome',
+    weekday: 'long',
+  }).format(new Date(iso));
+  return EVENT_DAYS[weekday] || '';
+}
+
 function addSectionHeader(text) {
   const h = document.createElement('h2');
   h.className = 'grid-header';
@@ -320,7 +335,7 @@ function appendItems(newItems, grouped) {
         lastDayLabel = label;
         const h = document.createElement('h3');
         h.className = 'day-header';
-        h.textContent = label;
+        h.textContent = label + eventLabel(item.taken_at);
         frag.appendChild(h);
       }
     }
