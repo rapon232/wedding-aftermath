@@ -9,7 +9,7 @@
 services:
   aftermath:
     image: ghcr.io/rapon232/wedding-aftermath:latest
-    container_name: aftermath
+    container_name: wedding_aftermath
     restart: unless-stopped
     pull_policy: always
     ports:
