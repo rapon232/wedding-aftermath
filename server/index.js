@@ -12,6 +12,7 @@ import { socialRouter } from './social.js';
 import { sseHandler } from './events.js';
 import { requeueUnprocessed } from './processing.js';
 import { integritySweep, diskInfo } from './maintenance.js';
+import { emailConfigured } from './email.js';
 
 bootstrapAdmin();
 requeueUnprocessed();
@@ -65,6 +66,7 @@ app.get('/api/health', (_req, res) => {
     media,
     uptimeSec: Math.round(process.uptime()),
     diskFreeGb: disk ? +(disk.freeBytes / 1e9).toFixed(1) : null,
+    email: emailConfigured(), // quick check that the invite key reached the container
   });
 });
 
