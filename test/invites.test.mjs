@@ -23,6 +23,14 @@ test('CSV import creates guests with codes and dedupes by email', async () => {
   assert.equal(again.data.createdCount, 0);
 });
 
+test('CSV import auto-detects semicolon delimiter (Numbers/Excel export) + BOM', async () => {
+  const csv = '﻿name;email\r\nSemi One;semi1@example.com\r\nSemi Two;semi2@example.com\r\n';
+  const r = await req(srv.base, 'POST', '/api/admin/import', { cookie: admin, json: { csv } });
+  assert.equal(r.status, 201);
+  assert.equal(r.data.createdCount, 2, 'semicolon rows parsed, not skipped');
+  assert.equal(r.data.created[0].email, 'semi1@example.com');
+});
+
 test('make-admin grants and revokes, but never removes the last admin', async () => {
   const g = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Deputy'] } });
   const id = g.data[0].id;

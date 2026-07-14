@@ -215,10 +215,18 @@ authRouter.post('/api/admin/guests/:id/invite', requireAdmin, async (req, res, n
   }
 });
 
-// Minimal RFC4180-ish CSV parser (name,email with a header row).
+// Minimal RFC4180-ish CSV parser (name,email with a header row). Strips a BOM and
+// auto-detects the delimiter (comma / semicolon / tab) — Numbers/Excel in many
+// locales export semicolon-separated ".csv".
 function parseCsv(text) {
-  const lines = String(text).split(/\r?\n/).filter((l) => l.trim());
+  const clean = String(text).replace(/^﻿/, '');
+  const lines = clean.split(/\r?\n/).filter((l) => l.trim());
   if (!lines.length) return [];
+  // Pick the delimiter that appears most in the header line.
+  const first = lines[0];
+  const delim = [',', ';', '\t']
+    .map((d) => [d, (first.split(d).length - 1)])
+    .reduce((best, cur) => (cur[1] > best[1] ? cur : best), [',', -1])[0];
   const rows = lines.map((l) => {
     const out = [];
     let field = '';
@@ -230,7 +238,7 @@ function parseCsv(text) {
           if (l[i + 1] === '"') { field += '"'; i++; } else q = false;
         } else field += c;
       } else if (c === '"') q = true;
-      else if (c === ',') { out.push(field); field = ''; }
+      else if (c === delim) { out.push(field); field = ''; }
       else field += c;
     }
     out.push(field);
