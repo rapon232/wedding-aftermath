@@ -113,3 +113,14 @@ Groups 11–12 introduce new capabilities — write/extend the matching spec und
 
 - [x] 13.1 Guest-facing "how to upload" one-liner (iPhone Live Photos/HEIC note + "use Wi-Fi for big videos" nudge)
 - [x] 13.2 Owner "download everything" job: full originals as a dated zip to stash offsite after the event
+
+## 14. Guest invites & management (guest-invites)
+
+- [x] 14.1 DB: guests gain `email`, `invited_at`, `activated_at`; `activated_at` stamped on first login
+- [x] 14.2 Admin panel: activation dot column (green=logged in / burgundy=not yet), email column
+- [x] 14.3 `POST /api/admin/guests/:id/admin` grant/revoke admin (guards the last admin); "Make admin/Demote" button
+- [x] 14.4 `POST /api/admin/import` — name,email CSV → bulk-create guests+codes, dedupe by email; "Import CSV" button
+- [x] 14.5 `POST /api/admin/guests/:id/invite` — email one guest via Resend, stamp invited_at; per-row "Send invite" button
+- [x] 14.6 `server/email.js` — Resend send + wedding-styled invite HTML (J♣ card, big code, magic link), from "Mitio Tech"
+- [x] 14.7 Magic link: `login.js` reads `?code=` and auto-logs-in
+- [x] 14.8 Config: RESEND_API_KEY / MAIL_FROM / PUBLIC_URL; tests for import, make-admin, activation, invite guards

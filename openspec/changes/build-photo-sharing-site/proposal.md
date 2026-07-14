@@ -23,6 +23,7 @@ After the wedding (~65 guests), everyone has photos and videos scattered across 
 - `media-upload`: Multi-file photo/video upload from mobile and desktop, original preserved on NAS storage, thumbnail/preview generation (incl. HEIC and video posters), upload progress and resilience.
 - `gallery-browse`: Responsive gallery grid, lightbox photo viewing, video playback, sorting and filtering by date, uploader, and media type.
 - `media-download`: Original-quality single-file download and bulk zip download of selected items or the whole gallery.
+- `guest-invites`: Guest email/activation tracking, CSV import, admin grant/revoke, and per-guest Resend invite emails with a magic-link sign-in.
 - `deployment`: Single Docker container on Synology NAS, media persisted on a NAS volume mount, served through Cloudflare tunnel at aftermath.mitio.tech.
 
 ### Modified Capabilities
