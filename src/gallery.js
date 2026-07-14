@@ -14,6 +14,7 @@ let fmt; // time formatter
 let fmtDay; // day-header formatter
 let lastDayLabel = null; // tracks day-group boundaries during append
 let inEveryoneSection = false; // day headers only apply to the main (non-pinned) section
+let totals = { photo: 0, video: 0 }; // library counts, kept live as items delete
 
 const grid = () => document.getElementById('gallery');
 
@@ -29,7 +30,6 @@ export function initGallery(user) {
 
   readStateFromUrl();
   bindToolbar();
-  loadUploaders();
 
   initLightbox({
     me,
@@ -121,6 +121,7 @@ export function reload() {
   loading = false;
   grid().innerHTML = '';
   setEmpty('Loading…');
+  loadUploaders(); // new uploaders (incl. you) show up in the filter without a refresh
   loadPage(true);
 }
 
@@ -284,10 +285,8 @@ async function loadPage(first = false) {
     nextCursor = data.nextCursor;
 
     if (first && data.totals) {
-      const parts = [];
-      if (data.totals.photo) parts.push(`${data.totals.photo} photo${data.totals.photo === 1 ? '' : 's'}`);
-      if (data.totals.video) parts.push(`${data.totals.video} video${data.totals.video === 1 ? '' : 's'}`);
-      document.getElementById('countLabel').textContent = parts.join(' · ');
+      totals = { photo: data.totals.photo || 0, video: data.totals.video || 0 };
+      renderCount();
     }
     if (first && data.newCount) showNewBanner(data.newCount);
 
@@ -491,10 +490,55 @@ function fmtDuration(s) {
 
 function removeItem(id) {
   const i = items.findIndex((x) => x.id === id);
-  if (i !== -1) items.splice(i, 1);
+  const removed = i !== -1 ? items.splice(i, 1)[0] : null;
   grid().querySelector(`[data-id="${id}"]`)?.remove();
-  grid().querySelectorAll('.cell').forEach((el, idx) => (el.dataset.index = idx));
-  if (!items.length) setEmpty('No memories here yet — be the first to share the day ♥');
+  // Keep the live count honest.
+  if (removed && totals[removed.type] != null) {
+    totals[removed.type] = Math.max(0, totals[removed.type] - 1);
+    renderCount();
+  }
+  if (!items.length) {
+    // Nothing left — clear day/section headers too so they don't linger.
+    grid().innerHTML = '';
+    lastDayLabel = null;
+    setEmpty('No memories here yet — be the first to share the day ♥');
+  } else {
+    pruneHeaders(); // drop any day/section header whose items are all gone
+    grid().querySelectorAll('.cell').forEach((el, idx) => (el.dataset.index = idx));
+  }
+  scheduleUploaderRefresh(); // an uploader who lost their last item leaves the filter
+}
+
+// Remove any day/section header not followed by at least one cell before the
+// next header — so deleting the last item of a day drops that day's date, and
+// emptying a whole section drops its heading, all without a page refresh.
+function pruneHeaders() {
+  const isHeader = (n) => n.classList?.contains('day-header') || n.classList?.contains('grid-header');
+  let lastHeader = null;
+  let sawCell = false;
+  for (const node of [...grid().children]) {
+    if (isHeader(node)) {
+      if (lastHeader && !sawCell) lastHeader.remove();
+      lastHeader = node;
+      sawCell = false;
+    } else if (node.classList?.contains('cell')) {
+      sawCell = true;
+    }
+  }
+  if (lastHeader && !sawCell) lastHeader.remove();
+}
+
+let uploaderRefreshTimer = null;
+function scheduleUploaderRefresh() {
+  clearTimeout(uploaderRefreshTimer); // coalesce a burst of deletes into one fetch
+  uploaderRefreshTimer = setTimeout(loadUploaders, 500);
+}
+
+function renderCount() {
+  const parts = [];
+  if (totals.photo) parts.push(`${totals.photo} photo${totals.photo === 1 ? '' : 's'}`);
+  if (totals.video) parts.push(`${totals.video} video${totals.video === 1 ? '' : 's'}`);
+  document.getElementById('countLabel').textContent = parts.join(' · ');
 }
 
 // --- "New since your last visit" banner ---
