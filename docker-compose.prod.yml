@@ -21,5 +21,9 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
       ADMIN_NAME: ${ADMIN_NAME:-Mitio}
       EVENT_TZ: ${EVENT_TZ:-Europe/Rome}
+      # Invite emails (Resend). Set RESEND_API_KEY in .env to enable sending.
+      PUBLIC_URL: ${PUBLIC_URL:-https://aftermath.mitio.tech}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-Mitio Tech <mitio@mitio.tech>}
     volumes:
       - ${DATA_PATH:-./wedding_aftermath_data}:/data
