@@ -14,11 +14,18 @@ before(async () => {
 });
 after(() => srv?.stop());
 
-test('health reports uptime and disk', async () => {
-  const r = await req(srv.base, 'GET', '/api/health');
+test('health: public probe is bare ok; admin gets full diagnostic', async () => {
+  // Unauthenticated: liveness only — no operational details leaked.
+  const pub = await req(srv.base, 'GET', '/api/health');
+  assert.equal(pub.data.ok, true);
+  assert.equal(pub.data.uptimeSec, undefined, 'no uptime for the public');
+  assert.equal('diskFreeGb' in pub.data, false, 'no disk info for the public');
+  // Admin (signed in): uptime, disk, and the email-configured flag.
+  const r = await req(srv.base, 'GET', '/api/health', { cookie: admin });
   assert.equal(r.data.ok, true);
   assert.ok(typeof r.data.uptimeSec === 'number');
   assert.ok('diskFreeGb' in r.data);
+  assert.equal(typeof r.data.email, 'boolean');
 });
 
 test('derived renditions carry no EXIF/GPS metadata', async () => {

@@ -86,7 +86,15 @@ async function processPhoto(m, original) {
     dims = await photoRenditions(original, m.id);
   } catch (err) {
     if (!/^hei[cf]$/.test(m.ext)) throw err;
-    // sharp's prebuilt libvips lacks the patented HEVC decoder — fall back to WASM decode
+    // sharp's prebuilt libvips lacks the patented HEVC decoder — fall back to a
+    // pure-JS/WASM decode. That reads the whole file into memory and decodes it
+    // in-process, so cap the eligible size: real phone HEICs are a few MB, and an
+    // oversized/crafted one could OOM-kill the container (SIGKILL is uncatchable).
+    const HEIC_FALLBACK_MAX = Number(process.env.HEIC_FALLBACK_MAX_BYTES) || 48 * 1024 * 1024;
+    const { size } = fs.statSync(original);
+    if (size > HEIC_FALLBACK_MAX) {
+      throw new Error(`HEIC too large for fallback decode (${size} bytes > ${HEIC_FALLBACK_MAX})`);
+    }
     const { default: heicConvert } = await import('heic-convert');
     const jpeg = await heicConvert({ buffer: fs.readFileSync(original), format: 'JPEG', quality: 0.9 });
     dims = await photoRenditions(Buffer.from(jpeg), m.id);

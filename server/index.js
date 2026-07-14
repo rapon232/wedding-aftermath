@@ -58,7 +58,10 @@ app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser(config.sessionSecret));
 app.use(loadGuest);
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', (req, res) => {
+  // Public probe stays a bare liveness check — no operational details leaked.
+  if (!req.guest?.is_admin) return res.json({ ok: true });
+  // Admins (signed in, in-browser) get the full diagnostic, incl. the email flag.
   const media = db.prepare('SELECT COUNT(*) AS n FROM media').get().n;
   const disk = diskInfo();
   res.json({
