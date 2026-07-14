@@ -13,8 +13,9 @@ export const emailConfigured = () => !!config.resendApiKey;
  * guest straight in.
  */
 export function inviteHtml({ name, code }) {
-  const link = `${config.publicUrl}/?code=${encodeURIComponent(code)}`;
-  const cardUrl = `${config.publicUrl}/card-email.png`;
+  // ?v bumps whenever the card art changes — forces email clients (esp. Gmail's
+  // image proxy) to fetch the new image instead of serving a cached old one.
+  const cardUrl = `${config.publicUrl}/card-email.png?v=3`;
   const cream = '#f7f3ee', card = '#ffffff', bordeaux = '#7b2d42', dark = '#4e1928', text = '#251a16', muted = '#7e6c63';
   const serif = "'DM Serif Display', Georgia, 'Times New Roman', serif";
   const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
@@ -37,10 +38,6 @@ export function inviteHtml({ name, code }) {
         <tr><td align="center" style="padding:8px 32px 4px">
           <p style="margin:0 0 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:${muted};font-family:${sans}">Your access code</p>
           <div style="font-family:'Courier New',monospace;font-size:34px;font-weight:700;letter-spacing:.12em;color:${bordeaux};background:${cream};border:2px solid #f0d9df;border-radius:14px;padding:16px 20px;display:inline-block">${esc(code)}</div>
-        </td></tr>
-        <tr><td align="center" style="padding:20px 32px 8px">
-          <a href="${link}" style="display:inline-block;background:${bordeaux};color:#ffffff;text-decoration:none;font-family:${sans};font-size:17px;font-weight:600;padding:15px 34px;border-radius:12px">Open my #LovePortal &rarr;</a>
-          <p style="margin:12px 0 0;font-size:13px;color:${muted};font-family:${sans}">That button logs you straight in, no need to type the code.</p>
         </td></tr>
         <tr><td align="center" style="padding:24px 32px 32px">
           <p style="margin:0;font-family:${serif};font-style:italic;font-size:20px;color:${dark}">&#128131; With Love, Jenny and Mitko &#127796;</p>
