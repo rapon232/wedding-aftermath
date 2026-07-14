@@ -75,12 +75,17 @@ app.use(socialRouter);
 
 // Production: serve the built frontend. In dev, Vite serves pages and proxies /api here.
 if (fs.existsSync(config.distDir)) {
-  // Gallery requires a session; login page is public.
-  const gate = (req, res, next) => (req.guest ? next() : res.redirect('/login.html'));
-  app.get(['/', '/index.html'], gate, (_req, res) => {
-    res.sendFile(path.join(config.distDir, 'index.html'));
+  // Root serves the gallery when signed in, otherwise the login page — as a 200,
+  // NOT a redirect, so link-preview scrapers (which often don't follow 302s) still
+  // read the Open Graph tags on login.html.
+  app.get(['/', '/index.html'], (req, res) => {
+    res.sendFile(path.join(config.distDir, req.guest ? 'index.html' : 'login.html'));
   });
+  // Bare /favicon.ico (requested by browsers regardless of <link>) — serve the icon,
+  // don't let it fall through to the auth gate and return HTML.
+  app.get('/favicon.ico', (_req, res) => res.sendFile(path.join(config.distDir, 'favicon-32.png')));
   app.use(express.static(config.distDir));
+  const gate = (req, res, next) => (req.guest ? next() : res.redirect('/login.html'));
   app.get(/^\/(?!api\/|media\/).*/, gate, (_req, res) => {
     res.sendFile(path.join(config.distDir, 'index.html'));
   });
