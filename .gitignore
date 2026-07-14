@@ -5,3 +5,7 @@ aftermath-data/
 .env
 .DS_Store
 .claude/settings.local.json
+
+# Guest lists — contain names/emails (PII); never commit
+guest-list*.csv
+*guest*.csv
