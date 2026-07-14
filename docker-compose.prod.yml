@@ -1,0 +1,25 @@
+# Production compose for the NAS: PULLS a prebuilt image (no build step).
+# 1. Replace OWNER below with your lowercase GitHub username.
+# 2. Put your .env next to this file (SESSION_SECRET etc. — same as .env.example).
+# 3. In Container Manager, create a Project from THIS file. It pulls & runs.
+#
+# Update later: push to GitHub → wait for the build → in Container Manager,
+# Project → Action → "Reset"/"Rebuild" (re-pulls latest) → done.
+
+services:
+  aftermath:
+    image: ghcr.io/OWNER/wedding-aftermath:latest
+    container_name: aftermath
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /data
+      NODE_ENV: production
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      ADMIN_NAME: ${ADMIN_NAME:-Mitio}
+      EVENT_TZ: ${EVENT_TZ:-Europe/Rome}
+    volumes:
+      - ${DATA_PATH:-./aftermath-data}:/data
