@@ -5,9 +5,17 @@ const input = document.getElementById('codeInput');
 const errorEl = document.getElementById('loginError');
 const btn = document.getElementById('loginBtn');
 
-// Already signed in? Straight to the gallery.
+// Magic link from the invite email: /?code=XXXX-XXXX auto-fills and submits.
+const magicCode = new URLSearchParams(location.search).get('code');
+
+// Already signed in? Straight to the gallery. Otherwise, if we arrived via a
+// magic link, log in for them so they never have to type the code.
 fetch('/api/me').then((r) => {
-  if (r.ok) location.replace('/');
+  if (r.ok) return location.replace('/');
+  if (magicCode) {
+    input.value = magicCode.toUpperCase();
+    (form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true })));
+  }
 });
 
 // Auto-format as XXXX-XXXX while typing.

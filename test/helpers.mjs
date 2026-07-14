@@ -32,6 +32,7 @@ export async function spawnServer(extraEnv = {}) {
       SESSION_SECRET: `test-secret-${port}`,
       ADMIN_NAME: 'TestAdmin',
       NODE_ENV: 'test',
+      RESEND_API_KEY: '', // never send real email from tests (override any .env value)
       ...extraEnv,
     },
   });

@@ -36,6 +36,11 @@ export const config = {
   uploadRateWindowMs: (Number(process.env.UPLOAD_RATE_WINDOW_MIN) || 10) * 60 * 1000,
   // Quieter request logging in tests.
   logRequests: process.env.NODE_ENV !== 'test',
+  // Public origin used in invite emails (magic links + the card image).
+  publicUrl: (process.env.PUBLIC_URL || 'https://aftermath.mitio.tech').replace(/\/$/, ''),
+  // Email (Resend) — invites are sent from here. Empty key → sending disabled.
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  mailFrom: process.env.MAIL_FROM || 'Mitio Tech <mitio@mitio.tech>',
 };
 
 export const dirs = {

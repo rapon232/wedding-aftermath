@@ -57,6 +57,10 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_media_pinned ON media(pinned_at)');
 
 // "New since your last visit" — updated after each gallery load (group 11.1)
 ensureColumn('guests', 'last_seen_at', 'last_seen_at TEXT');
+// Guest invites: contact email, when an invite was emailed, and first-login time.
+ensureColumn('guests', 'email', 'email TEXT');
+ensureColumn('guests', 'invited_at', 'invited_at TEXT');
+ensureColumn('guests', 'activated_at', 'activated_at TEXT');
 
 // Favorites / ♥ reactions (group 11.3)
 db.exec(`

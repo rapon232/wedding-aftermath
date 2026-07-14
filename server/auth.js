@@ -1,8 +1,12 @@
 import express from 'express';
 import { db, generateCode } from './db.js';
 import { config } from './config.js';
+import { emailConfigured, sendInvite } from './email.js';
 
 const COOKIE = 'lw_session';
+
+// Linear (no-backtracking) email sanity check: local@domain with a dot in domain.
+const isEmail = (e) => /^[^@\s]+@[^@\s]+$/.test(e) && e.slice(e.indexOf('@') + 1).includes('.');
 
 export function setSession(res, guestId) {
   res.cookie(COOKIE, String(guestId), {
@@ -69,6 +73,10 @@ authRouter.post('/api/login', throttleLogin, (req, res) => {
     .get(code);
   if (!guest || guest.revoked_at) return res.status(401).json({ error: 'invalid code' });
   setSession(res, guest.id);
+  // Stamp first-login time once → drives the "activated" dot in the guest panel.
+  db.prepare("UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL").run(
+    guest.id
+  );
   res.json({ id: guest.id, name: guest.name, isAdmin: !!guest.is_admin });
 });
 
@@ -100,7 +108,8 @@ authRouter.post('/api/seen', requireApi, (req, res) => {
 authRouter.get('/api/admin/guests', requireAdmin, (_req, res) => {
   const guests = db
     .prepare(`
-      SELECT g.id, g.code, g.name, g.is_admin, g.revoked_at, g.created_at,
+      SELECT g.id, g.code, g.name, g.email, g.is_admin, g.revoked_at, g.created_at,
+             g.invited_at, g.activated_at,
              COUNT(m.id) AS media_count
       FROM guests g LEFT JOIN media m ON m.uploader_id = g.id
       GROUP BY g.id ORDER BY g.name COLLATE NOCASE
@@ -141,3 +150,102 @@ authRouter.post('/api/admin/guests/:id/restore', requireAdmin, (req, res) => {
   if (!info.changes) return res.status(404).json({ error: 'not found' });
   res.json({ ok: true });
 });
+
+// Grant / revoke admin. Won't remove the last remaining admin (lock-out guard).
+authRouter.post('/api/admin/guests/:id/admin', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const makeAdmin = req.body?.isAdmin !== false;
+  const g = db.prepare('SELECT id, is_admin FROM guests WHERE id = ?').get(id);
+  if (!g) return res.status(404).json({ error: 'not found' });
+  if (!makeAdmin) {
+    const admins = db.prepare('SELECT COUNT(*) AS n FROM guests WHERE is_admin = 1 AND revoked_at IS NULL').get().n;
+    if (g.is_admin && admins <= 1) return res.status(400).json({ error: 'need at least one admin' });
+  }
+  db.prepare('UPDATE guests SET is_admin = ? WHERE id = ?').run(makeAdmin ? 1 : 0, id);
+  res.json({ ok: true, isAdmin: makeAdmin });
+});
+
+// Bulk-create guests from a name,email CSV (or a rows array). Dedupe by email.
+authRouter.post('/api/admin/import', requireAdmin, (req, res) => {
+  let rows = [];
+  if (Array.isArray(req.body?.rows)) {
+    rows = req.body.rows.map((r) => ({ name: r.name, email: r.email }));
+  } else if (typeof req.body?.csv === 'string') {
+    rows = parseCsv(req.body.csv);
+  } else {
+    return res.status(400).json({ error: 'provide csv or rows' });
+  }
+  const existing = new Set(
+    db.prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL').all().map((r) => r.e)
+  );
+  const insert = db.prepare('INSERT INTO guests (code, name, email) VALUES (?, ?, ?)');
+  const created = [];
+  let skipped = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      const name = String(r.name || '').trim().slice(0, 100);
+      const email = String(r.email || '').trim().toLowerCase();
+      if (!name || !isEmail(email) || existing.has(email)) {
+        skipped++;
+        continue;
+      }
+      existing.add(email);
+      const code = generateCode();
+      const { lastInsertRowid } = insert.run(code, name, email);
+      created.push({ id: Number(lastInsertRowid), name, email, code });
+    }
+  })();
+  res.status(201).json({ created, createdCount: created.length, skipped });
+});
+
+// Email one guest their personal link + code, and stamp invited_at.
+authRouter.post('/api/admin/guests/:id/invite', requireAdmin, async (req, res, next) => {
+  const g = db.prepare('SELECT id, name, email, code, revoked_at FROM guests WHERE id = ?').get(Number(req.params.id));
+  if (!g) return res.status(404).json({ error: 'not found' });
+  if (g.revoked_at) return res.status(400).json({ error: 'guest is revoked' });
+  if (!g.email) return res.status(400).json({ error: 'this guest has no email' });
+  if (!emailConfigured()) return res.status(503).json({ error: 'email is not configured on the server' });
+  try {
+    await sendInvite({ to: g.email, name: g.name, code: g.code });
+    db.prepare("UPDATE guests SET invited_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?").run(g.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('invite send failed:', err.message);
+    res.status(502).json({ error: `could not send: ${err.message}` });
+  }
+});
+
+// Minimal RFC4180-ish CSV parser (name,email with a header row).
+function parseCsv(text) {
+  const lines = String(text).split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+  const rows = lines.map((l) => {
+    const out = [];
+    let field = '';
+    let q = false;
+    for (let i = 0; i < l.length; i++) {
+      const c = l[i];
+      if (q) {
+        if (c === '"') {
+          if (l[i + 1] === '"') { field += '"'; i++; } else q = false;
+        } else field += c;
+      } else if (c === '"') q = true;
+      else if (c === ',') { out.push(field); field = ''; }
+      else field += c;
+    }
+    out.push(field);
+    return out;
+  });
+  // Detect a header (name/email) and column order.
+  let nameIdx = 0;
+  let emailIdx = 1;
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  if (header.includes('email') || header.includes('name')) {
+    const ni = header.indexOf('name');
+    const ei = header.indexOf('email');
+    if (ni >= 0) nameIdx = ni;
+    if (ei >= 0) emailIdx = ei;
+    rows.shift();
+  }
+  return rows.map((r) => ({ name: (r[nameIdx] || '').trim(), email: (r[emailIdx] || '').trim() }));
+}

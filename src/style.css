@@ -558,3 +558,18 @@ body.selecting .cell-fav { display: none; }
 .live-pill:hover { background: var(--bordeaux-dark); }
 @keyframes live-pop { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .live-pill { animation: none; } }
+
+/* --- Guest panel: invites --- */
+.admin-add-btns { display: flex; flex-direction: column; gap: 6px; }
+.admin-legend { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--text-muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot.activated { background: #2e7d52; }
+.dot.pending { background: var(--bordeaux); }
+.admin-legend .dot { margin-left: 8px; }
+.admin-legend .dot:first-child { margin-left: 0; }
+.admin-email { color: var(--text-muted); font-size: .78rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-row-actions .btn-tool { padding: 5px 9px; font-size: .72rem; }
+.btn-tool.btn-invite { border-color: var(--bordeaux-light); color: var(--bordeaux); }
+.btn-tool.btn-invite:hover { background: var(--bordeaux-pale); border-color: var(--bordeaux); color: var(--bordeaux-dark); }
+.btn-tool.btn-invited { color: var(--mint-dark); border-color: var(--mint-light); }
