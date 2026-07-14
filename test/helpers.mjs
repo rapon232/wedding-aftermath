@@ -20,7 +20,7 @@ export function getFreePort() {
   });
 }
 
-export async function spawnServer() {
+export async function spawnServer(extraEnv = {}) {
   const port = await getFreePort();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lw-test-'));
   const child = spawn('node', ['server/index.js'], {
@@ -32,6 +32,7 @@ export async function spawnServer() {
       SESSION_SECRET: `test-secret-${port}`,
       ADMIN_NAME: 'TestAdmin',
       NODE_ENV: 'test',
+      ...extraEnv,
     },
   });
 

@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import crypto from 'crypto';
 import fs from 'fs';
+import fsp from 'fs/promises';
 import path from 'path';
 import { db } from './db.js';
 import { config, dirs } from './config.js';
@@ -12,8 +13,8 @@ const PHOTO_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'])
 const VIDEO_EXT = new Set(['mp4', 'mov', 'm4v']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // Chunks stay under Cloudflare's ~100 MB per-request body limit, but large enough
-// to minimize round-trips on big videos over a long-haul link.
-export const CHUNK_SIZE = 64 * 1024 * 1024;
+// to minimize round-trips on big videos over a long-haul link. Overridable for tests.
+export const CHUNK_SIZE = Number(process.env.CHUNK_SIZE_BYTES) || 64 * 1024 * 1024;
 
 function httpError(status, message) {
   const e = new Error(message);
@@ -187,7 +188,7 @@ mediaRouter.post('/api/upload/init', requireApi, uploadGuard, (req, res) => {
   const partPath = path.join(dirs.tmp, `${uploadId}.part`);
   fs.writeFileSync(partPath, '');
   chunkSessions.set(uploadId, {
-    name, size, uploaderId: req.guest.id, received: 0, nextIndex: 0, partPath, touchedAt: Date.now(),
+    name, size, uploaderId: req.guest.id, received: 0, partPath, touchedAt: Date.now(),
   });
   res.json({ uploadId, chunkSize: CHUNK_SIZE });
 });
@@ -196,13 +197,16 @@ mediaRouter.post(
   '/api/upload/:uid/chunk',
   requireApi,
   express.raw({ type: () => true, limit: CHUNK_SIZE + 1024 * 1024 }),
-  (req, res) => {
+  async (req, res, next) => {
     const s = chunkSessions.get(req.params.uid);
     if (!s || s.uploaderId !== req.guest.id) return res.status(404).json({ error: 'unknown upload' });
     const index = Number(req.query.index);
-    if (index !== s.nextIndex) return res.status(409).json({ error: 'chunk out of order', expected: s.nextIndex });
+    if (!Number.isInteger(index) || index < 0) return res.status(400).json({ error: 'bad chunk index' });
     if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: 'empty chunk' });
-    if (s.received + req.body.length > s.size) {
+    // Chunks may now arrive in ANY order (client uploads several in parallel).
+    // Each is written at its byte offset, so ordering doesn't matter.
+    const offset = index * CHUNK_SIZE;
+    if (offset + req.body.length > s.size) {
       chunkSessions.delete(req.params.uid);
       fs.rmSync(s.partPath, { force: true });
       return res.status(400).json({ error: 'more data than declared size' });
@@ -214,9 +218,18 @@ mediaRouter.post(
       fs.rmSync(s.partPath, { force: true });
       return res.status(507).json({ error: 'The gallery is full right now — please tell the couple.' });
     }
-    fs.appendFileSync(s.partPath, req.body);
+    try {
+      // Positional write (async, so parallel chunks don't block the event loop).
+      const fh = await fsp.open(s.partPath, 'r+');
+      try {
+        await fh.write(req.body, 0, req.body.length, offset);
+      } finally {
+        await fh.close();
+      }
+    } catch (err) {
+      return next(err);
+    }
     s.received += req.body.length;
-    s.nextIndex++;
     s.touchedAt = Date.now();
     res.json({ received: s.received });
   }

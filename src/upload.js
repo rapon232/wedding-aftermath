@@ -2,7 +2,8 @@
 // per-file progress, retry, dedupe awareness, and processing status polling.
 
 const CHUNK_THRESHOLD = 90 * 1024 * 1024; // above this, use the chunked path (Cloudflare body limit)
-const PARALLEL = 3; // simultaneous uploads — fills the pipe without overwhelming mobile
+const PARALLEL = 3; // simultaneous file uploads — fills the pipe without overwhelming mobile
+const CHUNK_PARALLEL = 3; // simultaneous chunks per big file (keeps the uplink busy)
 
 let items = [];
 let activeCount = 0;
@@ -111,17 +112,31 @@ async function uploadChunked(item) {
   const init = await jsonFetch('/api/upload/init', { name: item.file.name, size: item.file.size });
   const { uploadId, chunkSize } = init;
   const total = item.file.size;
-  let sent = 0;
-  let index = 0;
-  while (sent < total) {
-    const blob = item.file.slice(sent, Math.min(sent + chunkSize, total));
-    await xhr('POST', `/api/upload/${uploadId}/chunk?index=${index}`, blob, (frac) => {
-      item.progress = (sent + frac * blob.size) / total;
-      render();
-    });
-    sent += blob.size;
-    index++;
+  const nChunks = Math.ceil(total / chunkSize);
+  const sentBytes = new Array(nChunks).fill(0); // per-chunk progress
+  const updateProgress = () => {
+    item.progress = sentBytes.reduce((a, b) => a + b, 0) / total;
+    render();
+  };
+
+  // Upload several chunks at once so the uplink stays saturated on a
+  // high-latency link (server writes each at its byte offset, any order).
+  let next = 0;
+  async function worker() {
+    while (next < nChunks) {
+      const index = next++;
+      const start = index * chunkSize;
+      const blob = item.file.slice(start, Math.min(start + chunkSize, total));
+      await xhr('POST', `/api/upload/${uploadId}/chunk?index=${index}`, blob, (frac) => {
+        sentBytes[index] = frac * blob.size;
+        updateProgress();
+      });
+      sentBytes[index] = blob.size;
+      updateProgress();
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(CHUNK_PARALLEL, nChunks) }, worker));
+
   return jsonFetch(`/api/upload/${uploadId}/finish`, {});
 }
 
