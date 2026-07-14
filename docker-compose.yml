@@ -23,4 +23,4 @@ services:
     volumes:
       # All state (originals, thumbs, previews, posters, db.sqlite) lives here.
       # Back up this one folder and everything survives.
-      - ${DATA_PATH:-./aftermath-data}:/data
+      - ${DATA_PATH:-./wedding_aftermath_data}:/data

@@ -51,7 +51,7 @@ Decide two things up front:
 
 | Setting | Recommended value | Why |
 |---|---|---|
-| **Data folder on the NAS** | `/volume1/docker/aftermath-data` | Where all media + DB live. Pick a share your NAS backup already covers. |
+| **Data folder on the NAS** | `/volume1/docker/wedding_aftermath_data` | Where all media + DB live. Pick a share your NAS backup already covers. |
 | **Local port** | `3000` (or any free port) | cloudflared will connect to this on the NAS. |
 
 ---
@@ -61,14 +61,14 @@ Decide two things up front:
 Pick one:
 
 **Option A — copy the folder** (simplest): copy this whole `wedding-photos`
-project to the NAS, e.g. to `/volume1/docker/aftermath`. Use File Station,
+project to the NAS, e.g. to `/volume1/docker/wedding_aftermath`. Use File Station,
 `scp`, or a synced drive. (The `data/`, `node_modules/`, and `dist/` folders are
 not needed — they're rebuilt or created on the NAS.)
 
 **Option B — git** (if you keep it in a repo): `git clone` it to
-`/volume1/docker/aftermath` on the NAS.
+`/volume1/docker/wedding_aftermath` on the NAS.
 
-From here on, the project lives at **`/volume1/docker/aftermath`** — adjust paths
+From here on, the project lives at **`/volume1/docker/wedding_aftermath`** — adjust paths
 if you chose another location.
 
 ---
@@ -78,7 +78,7 @@ if you chose another location.
 In the project folder on the NAS, create your `.env` from the template:
 
 ```bash
-cd /volume1/docker/aftermath
+cd /volume1/docker/wedding_aftermath
 cp .env.example .env
 ```
 
@@ -99,7 +99,7 @@ EVENT_TZ=Europe/Rome
 HOST_PORT=3000
 
 # Where all media + the database live on the NAS.
-DATA_PATH=/volume1/docker/aftermath-data
+DATA_PATH=/volume1/docker/wedding_aftermath_data
 ```
 
 Generate the secret on the NAS with:
@@ -119,7 +119,7 @@ openssl rand -hex 32
 ### If you have SSH (recommended)
 
 ```bash
-cd /volume1/docker/aftermath
+cd /volume1/docker/wedding_aftermath
 sudo docker compose up -d --build
 ```
 
@@ -146,7 +146,7 @@ sudo docker compose exec aftermath node scripts/reset-admin.mjs
 ### If you use Container Manager (GUI, no SSH)
 
 1. Container Manager → **Project** → **Create**.
-2. Path: `/volume1/docker/aftermath`, source: the existing `docker-compose.yml`.
+2. Path: `/volume1/docker/wedding_aftermath`, source: the existing `docker-compose.yml`.
 3. Make sure your `.env` is in that folder first (step 4).
 4. Build & run. Then open the project's **Logs** and look for the `access code` line.
 
@@ -237,7 +237,7 @@ These protect the one thing that can't be recreated: everyone's original photos.
 Add a scheduled task in **DSM → Control Panel → Task Scheduler**, or a cron line:
 
 ```cron
-0 3 * * *  cd /volume1/docker/aftermath && sudo docker compose exec -T aftermath node scripts/check-backup.mjs >> /volume1/docker/aftermath/backup.log 2>&1
+0 3 * * *  cd /volume1/docker/wedding_aftermath && sudo docker compose exec -T aftermath node scripts/check-backup.mjs >> /volume1/docker/wedding_aftermath/backup.log 2>&1
 ```
 
 **Make sure `DATA_PATH` is included in your Synology backup** (Hyper Backup /
@@ -274,7 +274,7 @@ sudo docker compose exec aftermath node scripts/export-all.mjs /data
 | **HEIC photo shows a broken thumbnail** | Tell me — the pure-JS fallback should handle it; I'll adjust. |
 | **Big video upload fails** | Use Wi-Fi, or confirm it's under 2 GB. The app chunks anything over ~90 MB automatically. |
 | **"The gallery is full"** | The NAS volume is low on space (guard trips under 1 GB free). Free space or expand the volume. |
-| **Redeploy after a code change** | `cd /volume1/docker/aftermath && git pull` (or re-copy files) → `sudo docker compose up -d --build`. Your data in `DATA_PATH` is untouched. |
+| **Redeploy after a code change** | `cd /volume1/docker/wedding_aftermath && git pull` (or re-copy files) → `sudo docker compose up -d --build`. Your data in `DATA_PATH` is untouched. |
 
 ---
 

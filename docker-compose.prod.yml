@@ -22,4 +22,4 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Mitio}
       EVENT_TZ: ${EVENT_TZ:-Europe/Rome}
     volumes:
-      - ${DATA_PATH:-./aftermath-data}:/data
+      - ${DATA_PATH:-./wedding_aftermath_data}:/data
