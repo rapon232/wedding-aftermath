@@ -8,7 +8,7 @@
 
 services:
   aftermath:
-    image: ghcr.io/OWNER/wedding-aftermath:latest
+    image: ghcr.io/rapon232/wedding-aftermath:latest
     container_name: aftermath
     restart: unless-stopped
     pull_policy: always
