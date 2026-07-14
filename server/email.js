@@ -39,6 +39,10 @@ export function inviteHtml({ name, code }) {
           <p style="margin:0 0 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:${muted};font-family:${sans}">Your access code</p>
           <div style="font-family:'Courier New',monospace;font-size:34px;font-weight:700;letter-spacing:.12em;color:${bordeaux};background:${cream};border:2px solid #f0d9df;border-radius:14px;padding:16px 20px;display:inline-block">${esc(code)}</div>
         </td></tr>
+        <tr><td align="center" style="padding:20px 32px 8px">
+          <a href="${config.publicUrl}" style="display:inline-block;background:${bordeaux};color:#ffffff;text-decoration:none;font-family:${sans};font-size:17px;font-weight:600;padding:15px 34px;border-radius:12px">Open the #LovePortal &rarr;</a>
+          <p style="margin:12px 0 0;font-size:13px;color:${muted};font-family:${sans}">Copy the code above and paste it in to sign in.</p>
+        </td></tr>
         <tr><td align="center" style="padding:24px 32px 32px">
           <p style="margin:0;font-family:${serif};font-style:italic;font-size:20px;color:${dark}">&#128131; With Love, Jenny and Mitko &#127796;</p>
         </td></tr>
