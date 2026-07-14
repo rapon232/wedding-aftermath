@@ -2,7 +2,7 @@
 // per-file progress, retry, dedupe awareness, and processing status polling.
 
 const CHUNK_THRESHOLD = 90 * 1024 * 1024; // above this, use the chunked path (Cloudflare body limit)
-const PARALLEL = 2;
+const PARALLEL = 3; // simultaneous uploads — fills the pipe without overwhelming mobile
 
 let items = [];
 let activeCount = 0;
@@ -222,6 +222,10 @@ function render() {
     if (item.preview) {
       const thumb = document.createElement('img');
       thumb.className = 'tray-thumb';
+      // Lazy + async decode: with a big multi-select, only the handful of visible
+      // tray thumbnails decode (HEIC decode is expensive) — no jank on "OK".
+      thumb.loading = 'lazy';
+      thumb.decoding = 'async';
       thumb.src = item.preview;
       thumb.alt = '';
       li.appendChild(thumb);

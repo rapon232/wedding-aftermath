@@ -11,8 +11,9 @@ import { enqueue } from './processing.js';
 const PHOTO_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif']);
 const VIDEO_EXT = new Set(['mp4', 'mov', 'm4v']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-// Chunks stay well under Cloudflare's ~100 MB per-request body limit
-export const CHUNK_SIZE = 48 * 1024 * 1024;
+// Chunks stay under Cloudflare's ~100 MB per-request body limit, but large enough
+// to minimize round-trips on big videos over a long-haul link.
+export const CHUNK_SIZE = 64 * 1024 * 1024;
 
 function httpError(status, message) {
   const e = new Error(message);
