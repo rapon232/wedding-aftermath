@@ -1,6 +1,6 @@
 # media-upload
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Video processing and metadata
 The system SHALL generate a poster image for each video and extract its duration and capture date. Duration and capture date SHALL be read robustly from the video's metadata, checking both the container (`format`) and the video `stream`, and preferring a capture-date tag that carries a timezone offset (e.g. `com.apple.quicktime.creationdate`) over a bare UTC `creation_time`. A capture date with an explicit offset or `Z` SHALL be trusted as-is; a naive timestamp SHALL be interpreted in the configured event timezone (`EVENT_TZ`). When a probe yields no duration or no capture date, the system SHALL log it rather than fail the upload. When no capture date can be determined, the item SHALL fall back to its upload time.
@@ -16,8 +16,6 @@ The system SHALL generate a poster image for each video and extract its duration
 #### Scenario: Metadata missing
 - **WHEN** a video has no readable capture date
 - **THEN** the upload still succeeds, the gap is logged, and the item falls back to upload time
-
-## ADDED Requirements
 
 ### Requirement: Non-destructive video date backfill
 The system SHALL provide a one-off maintenance operation that corrects `taken_at` for videos already stored, by re-reading each original's metadata with the same extraction logic. The operation SHALL be file-safe and reversible: it SHALL default to a dry-run that reports intended changes without writing; it SHALL back up the database before applying; it SHALL update only the `taken_at` field and only when a valid capture date is found; and it SHALL never move, rename, re-encode, or delete any media file. Re-running it SHALL be safe (idempotent).

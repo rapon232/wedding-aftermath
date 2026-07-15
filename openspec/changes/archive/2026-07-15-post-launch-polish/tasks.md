@@ -63,4 +63,4 @@
 
 - [x] 9.1 `npm run build` clean; existing test suite green; add/adjust tests where practical (nav-bounds predicate, create-with-email)
 - [x] 9.2 Verify no secrets in tracked files before each commit
-- [ ] 9.3 Deploy via GHCR pull → Container Manager recreate; then run the backfill dry-run, review, and apply
+- [x] 9.3 Deploy via GHCR pull → Container Manager recreate; then run the backfill dry-run, review, and apply

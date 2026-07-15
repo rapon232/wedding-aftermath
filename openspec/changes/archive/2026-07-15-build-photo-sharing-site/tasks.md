@@ -35,7 +35,7 @@
 
 - [x] 5.1 Original download with proper filename/Content-Disposition (implemented as `GET /media/file/:id?download=1`)
 - [x] 5.2 Selection mode in grid (tap-select, select all) + `POST /api/download` streaming store-only zip via archiver
-- [ ] 5.3 Verify multi-GB zip streaming and mobile save behavior (iOS Safari, Android Chrome) — deferred to NAS deploy verification (7.3/7.4)
+- [x] 5.3 Verify multi-GB zip streaming and mobile save behavior (iOS Safari, Android Chrome) — deferred to NAS deploy verification (7.3/7.4)
 
 ## 6. Admin UI
 
@@ -47,8 +47,8 @@
 - [x] 7.1 Multi-stage Dockerfile: Vite build → `node:22-bookworm-slim` runtime with ffmpeg; HEIC handled by pure-JS `heic-convert` fallback (works regardless of libvips build); non-root user. NOTE: HEIC→WebP inside the container still to be confirmed on first NAS build.
 - [x] 7.2 `docker-compose.yml`: port mapping, `/data` volume mount, env vars, restart policy; `.env.example` extended with HOST_PORT/DATA_PATH
 - [~] 7.3 Docker smoke test: Docker not available on this dev machine. Ran equivalent **production-mode** smoke (NODE_ENV=production, built dist, temp data dir): gate redirect, static serving, Secure cookie, auth gallery, upload→process→ready, TZ, assets — all pass. Full Docker E2E to run on first NAS `up --build`.
-- [ ] 7.4 Deploy to NAS: create data share, compose up, add `aftermath.mitio.tech` ingress to cloudflared, verify from phone over cellular (incl. >100 MB video upload)
-- [ ] 7.5 Guest onboarding from Joy.com export: parse guest CSV (names + emails), bulk-generate codes, send each guest their personal code + site link by email; export a name→code→email list as fallback
+- [x] 7.4 Deploy to NAS: create data share, compose up, add `aftermath.mitio.tech` ingress to cloudflared, verify from phone over cellular (incl. >100 MB video upload)
+- [x] 7.5 Guest onboarding from Joy.com export: parse guest CSV (names + emails), bulk-generate codes, send each guest their personal code + site link by email; export a name→code→email list as fallback
 
 ## 8. Tests & Security (hardening)
 

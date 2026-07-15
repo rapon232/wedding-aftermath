@@ -1,6 +1,18 @@
-# gallery-browse
+# gallery-browse Specification
 
-## MODIFIED Requirements
+## Purpose
+TBD - created by archiving change build-photo-sharing-site. Update Purpose after archive.
+## Requirements
+### Requirement: Responsive gallery grid
+The system SHALL display all media in a responsive thumbnail grid usable on both mobile and desktop, loading thumbnails lazily and paging incrementally so the gallery stays fast with thousands of items.
+
+#### Scenario: Mobile browsing
+- **WHEN** a guest opens the gallery on a phone
+- **THEN** the grid adapts to the small screen and scrolling loads further items automatically
+
+#### Scenario: Large gallery
+- **WHEN** the gallery holds 2000+ items
+- **THEN** initial page load requests only the first page of thumbnails
 
 ### Requirement: Lightbox viewing and video playback
 The system SHALL open media full-screen in a lightbox with next/previous navigation (swipe on touch, arrow keys on desktop). Videos SHALL play in-browser with a poster image and standard controls, supporting seeking. Navigation controls SHALL reflect the actual bounds of the browsable set: the previous control SHALL be shown only when an earlier item exists, and the next control SHALL be shown only when a later item exists or another page can still be fetched. The prev/next/close controls SHALL be visually centered. Photo zoom (pinch and double-tap) SHALL update smoothly on touch devices.
@@ -36,11 +48,39 @@ The system SHALL sort by capture/upload date (newest/oldest) and filter by uploa
 - **WHEN** a guest filters by a specific uploader
 - **THEN** only that uploader's media is shown, in the selected sort order
 
+#### Scenario: Filter by type
+- **WHEN** a guest filters to videos only
+- **THEN** only videos are shown
+
+#### Scenario: Clear filters
+- **WHEN** a guest with an active filter or non-default sort taps "Clear filters"
+- **THEN** the uploader resets to everyone, the type to all, and the sort to newest first
+
 #### Scenario: Attribution visible
 - **WHEN** a guest views an item in the lightbox
 - **THEN** the uploader name and date are displayed
 
-## ADDED Requirements
+### Requirement: Admin can pin media to the top
+The admin SHALL be able to pin and unpin media items. Pinned items SHALL appear first in the gallery for all guests, ahead of the chosen sort order, so the couple can surface the photographers' final photos. Pinned items SHALL be visually marked.
+
+#### Scenario: Pin an item
+- **WHEN** the admin pins an item
+- **THEN** it moves to a pinned section at the top of the gallery for everyone, marked as pinned
+
+#### Scenario: Unpin an item
+- **WHEN** the admin unpins an item
+- **THEN** it returns to its normal position in the current sort order
+
+#### Scenario: Non-admin cannot pin
+- **WHEN** a non-admin guest attempts to pin or unpin
+- **THEN** the system returns 403 and nothing changes
+
+### Requirement: Wedding-themed UI
+The gallery SHALL use the wedding visual language of the seating site: cream background, mint/bordeaux accents, DM Serif Display headings, DM Sans body text.
+
+#### Scenario: Consistent theming
+- **WHEN** any page renders (login, gallery, lightbox)
+- **THEN** it uses the shared palette and typography
 
 ### Requirement: Thumbnail media-type affordance
 Video thumbnails SHALL be visually distinguishable from photos by showing the clip duration as a badge in the lower corner of the thumbnail, in addition to a play affordance.
@@ -63,3 +103,4 @@ The comments panel SHALL load a media item's comments only when the panel is ope
 #### Scenario: Rounded close control
 - **WHEN** the comments panel is open
 - **THEN** its close button is round, consistent with the other controls
+

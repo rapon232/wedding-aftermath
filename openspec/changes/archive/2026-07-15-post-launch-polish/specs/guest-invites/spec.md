@@ -1,9 +1,9 @@
 # guest-invites
 
-## MODIFIED Requirements
+## ADDED Requirements
 
-### Requirement: Admin guest management
-The admin SHALL be able to create guest access codes by name, list guests with their activation state, grant/revoke admin, and revoke/restore access. When creating a single guest by hand, the admin SHALL be able to supply an email address alongside the name, so that guest can be invited immediately without going through CSV import. Names supplied without an email SHALL still be accepted. Duplicate names (case-insensitive) and duplicate emails SHALL be skipped.
+### Requirement: Create a guest by name and email by hand
+When creating a single guest by hand, the admin SHALL be able to supply an email address alongside the name, so that guest can be invited immediately without going through CSV import. Names supplied without an email SHALL still be accepted. Duplicate names (case-insensitive) and duplicate emails SHALL be skipped.
 
 #### Scenario: Create one guest with name and email
 - **WHEN** the admin enters a name and an email for a single new guest
