@@ -172,10 +172,14 @@ function parseVideoDate(s) {
   return exifToUtc(str, om ? om[1] : '');
 }
 
-async function processVideo(m, original) {
-  const poster = path.join(dirs.posters, `${m.id}.jpg`);
-
-  // Probe duration + creation time (ffmpeg autorotates frames, so dimensions come from the poster)
+/**
+ * Read a video's duration (seconds) and capture date (UTC ISO) from its
+ * metadata. READ-ONLY — opens the file only to probe it. Checks both the
+ * container (format) and each stream, and prefers the timezone-aware
+ * QuickTime creation date over the plain UTC creation_time. Returns
+ * { duration, takenAt } with nulls where nothing could be determined.
+ */
+export async function probeVideoMeta(original, label = original) {
   let duration = null;
   let takenAt = null;
   try {
@@ -208,11 +212,19 @@ async function processVideo(m, original) {
     if (rawDate) takenAt = parseVideoDate(rawDate);
 
     if (!duration || !takenAt) {
-      console.warn(`video probe incomplete for ${m.id} (${m.filename}): duration=${duration} takenAt=${takenAt}`);
+      console.warn(`video probe incomplete for ${label}: duration=${duration} takenAt=${takenAt}`);
     }
   } catch (err) {
-    console.warn(`ffprobe failed for ${m.id} (${m.filename}): ${err.message}`);
+    console.warn(`ffprobe failed for ${label}: ${err.message}`);
   }
+  return { duration, takenAt };
+}
+
+async function processVideo(m, original) {
+  const poster = path.join(dirs.posters, `${m.id}.jpg`);
+
+  // Probe duration + creation time (ffmpeg autorotates frames, so dimensions come from the poster)
+  const { duration, takenAt } = await probeVideoMeta(original, `${m.id} (${m.filename})`);
 
   // Poster frame at 1s in; very short clips fall back to the first frame
   const grab = (seek) =>

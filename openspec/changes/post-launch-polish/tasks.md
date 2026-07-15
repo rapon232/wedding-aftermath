@@ -45,12 +45,12 @@
 
 ## 7. Video taken_at backfill (media-upload) — non-destructive
 
-- [ ] 7.1 One-off script: iterate `type='video'` rows; re-probe each original with the group-6 logic (read-only)
-- [ ] 7.2 `--dry-run` (default): print `filename: old taken_at → new taken_at` for each, write nothing
-- [ ] 7.3 Backup: copy `db.sqlite` → `db.sqlite.bak-<date>` before any write
-- [ ] 7.4 Apply mode: `UPDATE media SET taken_at = ? WHERE id = ?` only when a valid capture date is found; skip otherwise. Never touch originals/posters/thumbs/previews
-- [ ] 7.5 Idempotent + safe to re-run; log a summary (updated / skipped / unchanged)
-- [ ] 7.6 Verify gallery re-sorts videos to their true date after apply (no file moves)
+- [x] 7.1 One-off script: iterate `type='video'` rows; re-probe each original with the group-6 logic (read-only)
+- [x] 7.2 `--dry-run` (default): print `filename: old taken_at → new taken_at` for each, write nothing
+- [x] 7.3 Backup: copy `db.sqlite` → `db.sqlite.bak-<date>` before any write
+- [x] 7.4 Apply mode: `UPDATE media SET taken_at = ? WHERE id = ?` only when a valid capture date is found; skip otherwise. Never touch originals/posters/thumbs/previews
+- [x] 7.5 Idempotent + safe to re-run; log a summary (updated / skipped / unchanged)
+- [x] 7.6 Verify gallery re-sorts videos to their true date after apply (no file moves)
 
 ## 8. Add guest by name + email (guest-invites)
 
