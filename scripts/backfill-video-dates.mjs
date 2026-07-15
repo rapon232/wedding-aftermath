@@ -33,15 +33,16 @@ function backupDb() {
 }
 
 const videos = db
-  .prepare("SELECT id, filename, ext, taken_at FROM media WHERE type = 'video' ORDER BY uploaded_at ASC")
+  .prepare("SELECT id, filename, ext, taken_at, duration_s FROM media WHERE type = 'video' ORDER BY uploaded_at ASC")
   .all();
 
 console.log(`${APPLY ? 'APPLY' : 'DRY-RUN'} — ${videos.length} video(s) to check\n`);
 
 if (APPLY && videos.length) backupDb();
 
-const update = db.prepare('UPDATE media SET taken_at = ? WHERE id = ?');
-let changed = 0, unchanged = 0, noDate = 0, missing = 0;
+// Fix capture date AND duration (duration_s feeds the thumbnail badge).
+const update = db.prepare('UPDATE media SET taken_at = ?, duration_s = ? WHERE id = ?');
+let changed = 0, unchanged = 0, noData = 0, missing = 0;
 
 for (const v of videos) {
   const original = path.join(dirs.originals, `${v.id}.${v.ext}`);
@@ -50,22 +51,28 @@ for (const v of videos) {
     missing++;
     continue;
   }
-  const { takenAt } = await probeVideoMeta(original, `${v.id} (${v.filename})`);
-  if (!takenAt) {
-    noDate++;
-    continue; // no discoverable capture date → leave the row exactly as-is
+  const { duration, takenAt } = await probeVideoMeta(original, `${v.id} (${v.filename})`);
+  if (!takenAt && duration == null) {
+    noData++;
+    continue; // nothing discoverable → leave the row exactly as-is
   }
-  if (takenAt === v.taken_at) {
+  // Keep existing values where the probe found nothing new.
+  const newTaken = takenAt || v.taken_at;
+  const newDur = duration != null ? duration : v.duration_s;
+  if (newTaken === v.taken_at && newDur === v.duration_s) {
     unchanged++;
     continue;
   }
-  console.log(`${v.filename}: ${v.taken_at} → ${takenAt}`);
-  if (APPLY) update.run(takenAt, v.id);
+  const parts = [];
+  if (newTaken !== v.taken_at) parts.push(`date ${v.taken_at} → ${newTaken}`);
+  if (newDur !== v.duration_s) parts.push(`dur ${v.duration_s ?? 'null'} → ${newDur}`);
+  console.log(`${v.filename}: ${parts.join(', ')}`);
+  if (APPLY) update.run(newTaken, newDur, v.id);
   changed++;
 }
 
 console.log(
   `\n${APPLY ? 'Applied' : 'Would change'}: ${changed}  |  already correct: ${unchanged}  |  ` +
-    `no date found (left as-is): ${noDate}  |  missing file: ${missing}`
+    `nothing found (left as-is): ${noData}  |  missing file: ${missing}`
 );
 if (!APPLY && changed) console.log('\nRe-run with --apply to write these changes (db.sqlite is backed up first).');
