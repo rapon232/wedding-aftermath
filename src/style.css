@@ -550,6 +550,17 @@ body.lightbox-open {
   /* Promote to its own GPU layer: iOS Safari otherwise leaves a 1px repaint
      seam (the scrolling gallery peeks through) when the page scrolls behind. */
   transform: translateZ(0);
+  transition: background 0.25s ease;
+}
+/* Immersive view (single tap): just the photo on black, chrome faded out. */
+.lightbox.lb-immersive {
+  background: #000;
+}
+.lb-immersive .lb-btn,
+.lb-immersive .lb-caption,
+.lb-immersive .lb-unmute {
+  opacity: 0;
+  pointer-events: none;
 }
 .lb-stage {
   position: absolute;
@@ -586,7 +597,9 @@ body.lightbox-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.2s;
   backdrop-filter: blur(4px);
 }
 .lb-btn:hover {
@@ -623,6 +636,7 @@ body.lightbox-open {
   gap: 12px;
   padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
   background: linear-gradient(transparent, rgba(26, 13, 17, 0.85));
+  transition: opacity 0.2s;
 }
 .lb-by {
   font-family: 'DM Serif Display', serif;
@@ -718,6 +732,7 @@ body.lightbox-open {
   cursor: pointer;
   backdrop-filter: blur(4px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.2s;
 }
 .lb-unmute:hover {
   background: rgba(20, 10, 13, 0.88);

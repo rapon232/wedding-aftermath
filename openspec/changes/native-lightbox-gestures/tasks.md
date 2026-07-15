@@ -15,10 +15,10 @@
 
 ## 3. Immersive mode + swipe-down-to-close
 
-- [ ] 3.1 Add `lb-immersive` overlay class + CSS: fade out `.lb-btn`, `.lb-caption`, `.lb-unmute` (opacity + `pointer-events: none`), pure-black backdrop; state persists across `step()`, resets in `openLightbox()`
-- [ ] 3.2 Replace overlay click-to-close with a single stage-level tap handler: clean single tap (≤10 px movement) waits 300 ms for a possible double-tap, then toggles immersive; double-tap within the window zooms; comments-open tap still closes the panel first; fold `setupZoom`'s `lastTap` logic into this handler
-- [ ] 3.3 Auto-hide chrome when a two-finger gesture starts; leave taps on `<video>` elements to the native controls (background taps still toggle)
-- [ ] 3.4 Implement swipe-down-to-close: single-finger vertical drag at `scale === 1` (vertical intent decided in the first ~10 px) translates the stage and fades the backdrop; release past ~25% of viewport height closes, otherwise springs back; disabled while zoomed or comments panel open; Esc and X unchanged
+- [x] 3.1 Add `lb-immersive` overlay class + CSS: fade out `.lb-btn`, `.lb-caption`, `.lb-unmute` (opacity + `pointer-events: none`), pure-black backdrop; state persists across `step()`, resets in `openLightbox()`
+- [x] 3.2 Replace overlay click-to-close with a single stage-level tap handler: clean single tap (≤10 px movement) waits 300 ms for a possible double-tap, then toggles immersive; double-tap within the window zooms; comments-open tap still closes the panel first; fold `setupZoom`'s `lastTap` logic into this handler
+- [x] 3.3 Auto-hide chrome when a two-finger gesture starts; leave taps on `<video>` elements to the native controls (background taps still toggle)
+- [x] 3.4 Implement swipe-down-to-close: single-finger vertical drag at `scale === 1` (vertical intent decided in the first ~10 px) translates the stage and fades the backdrop; release past ~25% of viewport height closes, otherwise springs back; disabled while zoomed or comments panel open; Esc and X unchanged
 
 ## 4. Verification
 

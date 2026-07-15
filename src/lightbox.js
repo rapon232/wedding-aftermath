@@ -14,6 +14,22 @@ let opts = {};
 let overlay = null;
 let soundOn = false; // once a guest taps for sound, later videos try to start unmuted
 
+// Immersive view: chrome hidden, pure-black backdrop. Persists across
+// prev/next navigation; reset whenever the lightbox is (re)opened.
+let immersive = false;
+function setImmersive(on) {
+  immersive = on;
+  overlay.classList.toggle('lb-immersive', on);
+}
+
+// Pending single-tap (chrome toggle), cancelled when the tap turns out to be
+// the first half of a double-tap zoom.
+let tapTimer = 0;
+function cancelTap() {
+  clearTimeout(tapTimer);
+  tapTimer = 0;
+}
+
 export function initLightbox(config) {
   me = config.me;
   fmtDate = config.fmtDate;
@@ -30,6 +46,7 @@ export function openLightbox(items, index, o = {}) {
   opts = o;
   if (!overlay) build();
   overlay.hidden = false;
+  setImmersive(false); // reopen always starts with chrome visible
   document.body.classList.add('lightbox-open');
   show();
 }
@@ -85,11 +102,18 @@ function build() {
   overlay.querySelector('.lb-comment').addEventListener('click', toggleComments);
   overlay.querySelector('.lb-comments-close').addEventListener('click', () => setComments(false));
   overlay.querySelector('.lb-comment-form').addEventListener('submit', submitComment);
+  // Single tap (photo or background) toggles the chrome — iOS gallery model.
+  // Closing is via the X, Escape, or swipe-down; tap-to-close is gone.
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay || e.target.classList.contains('lb-stage')) {
-      if (commentsOpen) return setComments(false); // first tap closes the panel
-      close();
-    }
+    if (e.target.closest('button, a, input, .lb-caption, .lb-comments')) return; // controls keep working
+    if (e.target.tagName === 'VIDEO') return; // native player owns video taps
+    if (commentsOpen) return setComments(false); // first tap closes the panel
+    // Wait out the double-tap window: a second tap means zoom, not toggle.
+    if (tapTimer) return cancelTap();
+    tapTimer = setTimeout(() => {
+      tapTimer = 0;
+      setImmersive(!immersive);
+    }, 300);
   });
 
   document.addEventListener('keydown', (e) => {
@@ -101,20 +125,67 @@ function build() {
     else if (e.key === 'ArrowRight') step(1);
   });
 
-  // Swipe navigation (touch) — disabled while an image is pinch/double-tap zoomed.
-  let touchX = null;
+  // Stage touch gestures — disabled while an image is pinch/double-tap zoomed
+  // or the comments panel is open. The axis locks after ~10px of movement:
+  // horizontal swipes navigate, a vertical drag pulls the photo down to
+  // dismiss (past 25% of the viewport) or springs back on release.
+  const stageEl = overlay.querySelector('.lb-stage');
+  let touch = null; // { x, y, axis: null|'h'|'v', dy }
+  const resetDrag = (animate) => {
+    stageEl.style.transition = animate ? 'transform .18s ease' : '';
+    stageEl.style.transform = '';
+    overlay.style.transition = '';
+    overlay.style.background = '';
+  };
   overlay.addEventListener(
     'touchstart',
-    (e) => (touchX = e.touches.length === 1 ? e.touches[0].clientX : null),
-    {
-      passive: true,
+    (e) => {
+      touch =
+        e.touches.length === 1
+          ? { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null, dy: 0 }
+          : null;
     },
+    { passive: true },
+  );
+  overlay.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!touch || e.touches.length !== 1 || zoomed || commentsOpen) return;
+      const dx = e.touches[0].clientX - touch.x;
+      const dy = e.touches[0].clientY - touch.y;
+      if (!touch.axis) {
+        if (Math.hypot(dx, dy) < 10) return;
+        touch.axis = Math.abs(dy) > Math.abs(dx) ? 'v' : 'h';
+        if (touch.axis === 'v') {
+          stageEl.style.transition = 'none';
+          overlay.style.transition = 'none'; // backdrop fade tracks the finger directly
+        }
+      }
+      if (touch.axis !== 'v') return;
+      e.preventDefault(); // we own the drag — no page scroll behind
+      touch.dy = Math.max(0, dy);
+      stageEl.style.transform = `translateY(${touch.dy}px)`;
+      const k = Math.min(1, touch.dy / (window.innerHeight * 0.25));
+      overlay.style.background = `rgba(0, 0, 0, ${1 - 0.55 * k})`;
+    },
+    { passive: false },
   );
   overlay.addEventListener('touchend', (e) => {
-    if (touchX === null || zoomed || commentsOpen) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    touchX = null;
-    if (Math.abs(dx) > 48) step(dx > 0 ? -1 : 1);
+    if (!touch) return;
+    const t = touch;
+    touch = null;
+    if (t.axis === 'v') {
+      if (t.dy > window.innerHeight * 0.25) {
+        resetDrag(false);
+        close();
+      } else {
+        resetDrag(true); // spring back
+      }
+      return;
+    }
+    if (zoomed || commentsOpen) return;
+    const dx = e.changedTouches[0].clientX - t.x;
+    if (t.axis === 'h' && Math.abs(dx) > 48) step(dx > 0 ? -1 : 1);
   });
 }
 
@@ -221,12 +292,14 @@ function setupZoom(img) {
         measure();
         pinch = { dist: touchDist(e.touches), mid: touchMid(e.touches) };
         panning = false;
+        setImmersive(true); // zooming in means looking at the photo — drop the chrome
       } else if (e.touches.length === 1) {
         const now = Date.now();
         if (now - lastTap < 300) {
           const t = e.touches[0];
           scale > 1 ? reset() : zoomTo(t.clientX, t.clientY);
           e.preventDefault();
+          cancelTap(); // it was a double-tap, not a chrome toggle
         }
         lastTap = now;
         if (scale > 1) {
