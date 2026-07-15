@@ -753,6 +753,10 @@ body.lightbox-open .wrapper {
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1;
   background: rgba(20, 10, 13, 0.72);
   color: #f7f3ee;
   border: none;
@@ -765,6 +769,11 @@ body.lightbox-open .wrapper {
   backdrop-filter: blur(4px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   transition: opacity 0.2s;
+}
+.lb-unmute svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 .lb-unmute:hover {
   background: rgba(20, 10, 13, 0.88);
