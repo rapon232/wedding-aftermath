@@ -42,6 +42,7 @@ export function initGallery(user) {
       if (uploaderId == null) return;
       state.uploader = String(uploaderId);
       syncUrl();
+      updateClearBtn();
       reload(); // reloads filtered + refreshes the uploader dropdown selection
     },
   });
@@ -148,6 +149,27 @@ function syncUrl() {
   history.replaceState(null, '', (qs ? `?${qs}` : location.pathname) + hash);
 }
 
+// Show "Clear filters" only when something is actually filtered/re-sorted.
+function updateClearBtn() {
+  const active = state.sort !== 'taken-desc' || !!state.type || !!state.uploader;
+  const btn = document.getElementById('clearFilters');
+  if (btn) btn.hidden = !active;
+}
+
+function clearFilters() {
+  state.sort = 'taken-desc';
+  state.type = '';
+  state.uploader = '';
+  document.getElementById('sortSel').value = 'taken-desc';
+  document.getElementById('uploaderSel').value = '';
+  for (const b of document.getElementById('typeSeg').querySelectorAll('button')) {
+    b.classList.toggle('active', b.dataset.type === '');
+  }
+  syncUrl();
+  updateClearBtn();
+  reload();
+}
+
 function bindToolbar() {
   const seg = document.getElementById('typeSeg');
   for (const btn of seg.querySelectorAll('button')) {
@@ -156,6 +178,7 @@ function bindToolbar() {
       state.type = btn.dataset.type;
       for (const b of seg.querySelectorAll('button')) b.classList.toggle('active', b === btn);
       syncUrl();
+      updateClearBtn();
       reload();
     });
   }
@@ -164,14 +187,18 @@ function bindToolbar() {
   sortSel.addEventListener('change', () => {
     state.sort = sortSel.value;
     syncUrl();
+    updateClearBtn();
     reload();
   });
   const upSel = document.getElementById('uploaderSel');
   upSel.addEventListener('change', () => {
     state.uploader = upSel.value;
     syncUrl();
+    updateClearBtn();
     reload();
   });
+  document.getElementById('clearFilters').addEventListener('click', clearFilters);
+  updateClearBtn();
 
   // --- Selection + bulk download ---
   document.getElementById('selectBtn').addEventListener('click', () => setSelectMode(true));

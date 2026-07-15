@@ -494,10 +494,16 @@ body.selecting .cell-fav { display: none; }
   max-height: 60vh; display: flex; flex-direction: column;
   background: var(--cream-card); border-top-left-radius: 18px; border-top-right-radius: 18px;
   box-shadow: 0 -8px 32px rgba(0,0,0,.4);
-  transform: translateY(100%); opacity: 0; transition: transform .28s ease, opacity .28s ease;
+  /* translateY(101%) fully clears the viewport and visibility:hidden removes it
+     entirely when closed — otherwise iOS leaves a 1px cream hairline at the bottom. */
+  transform: translateY(101%); opacity: 0; visibility: hidden;
+  transition: transform .28s ease, opacity .28s ease, visibility 0s .28s;
   pointer-events: none;
 }
-.lb-comments.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.lb-comments.open {
+  transform: translateY(0); opacity: 1; visibility: visible; pointer-events: auto;
+  transition: transform .28s ease, opacity .28s ease, visibility 0s 0s;
+}
 .lb-comments-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px 8px; font-family: 'DM Serif Display', serif; color: var(--bordeaux-dark);
