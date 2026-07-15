@@ -122,19 +122,29 @@ authRouter.post('/api/admin/guests', requireAdmin, (req, res) => {
   const names = Array.isArray(req.body?.names) ? req.body.names : [req.body?.name];
   const clean = names.map((n) => String(n || '').trim().slice(0, 100)).filter(Boolean);
   if (!clean.length) return res.status(400).json({ error: 'name(s) required' });
-  // Skip names that already exist (case-insensitive) so we don't create duplicates.
+  // An optional email may be supplied only when adding a single guest by hand,
+  // so we can invite them straight away without a CSV import.
+  const emailRaw = String(req.body?.email || '').trim().toLowerCase();
+  if (emailRaw && clean.length !== 1) return res.status(400).json({ error: 'email only allowed with a single name' });
+  if (emailRaw && !isEmail(emailRaw)) return res.status(400).json({ error: 'invalid email' });
+  const email = emailRaw || null;
+  // Skip names (and, if given, emails) that already exist so we don't duplicate.
   const existing = new Set(db.prepare('SELECT lower(name) AS n FROM guests').all().map((r) => r.n));
-  const insert = db.prepare('INSERT INTO guests (code, name) VALUES (?, ?)');
+  const existingEmails = new Set(
+    db.prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL').all().map((r) => r.e)
+  );
+  const insert = db.prepare('INSERT INTO guests (code, name, email) VALUES (?, ?, ?)');
   const created = [];
   let skipped = 0;
   db.transaction(() => {
     for (const name of clean) {
       const key = name.toLowerCase();
-      if (existing.has(key)) { skipped++; continue; }
+      if (existing.has(key) || (email && existingEmails.has(email))) { skipped++; continue; }
       existing.add(key);
+      if (email) existingEmails.add(email);
       const code = generateCode();
-      const { lastInsertRowid } = insert.run(code, name);
-      created.push({ id: Number(lastInsertRowid), name, code });
+      const { lastInsertRowid } = insert.run(code, name, email);
+      created.push({ id: Number(lastInsertRowid), name, email, code });
     }
   })();
   // Return the created guests as an array (only the new ones; dupes are skipped).

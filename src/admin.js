@@ -38,6 +38,11 @@ function build() {
           <button id="adminImport" class="btn-tool">⬆ Import CSV</button>
         </div>
       </div>
+      <div class="admin-add-one">
+        <input id="adminOneName" type="text" placeholder="Name" autocomplete="off" />
+        <input id="adminOneEmail" type="email" placeholder="email@example.com (optional)" autocomplete="off" />
+        <button id="adminAddOne" class="btn-tool">Add guest</button>
+      </div>
       <div class="admin-actions-row">
         <button id="adminCopyAll" class="btn-tool">Copy all “Name: CODE”</button>
         <span class="admin-legend"><span class="dot activated"></span>logged in <span class="dot pending"></span>not yet</span>
@@ -58,6 +63,7 @@ function build() {
     if (e.target === panel) close();
   });
   panel.querySelector('#adminCreate').addEventListener('click', createCodes);
+  panel.querySelector('#adminAddOne').addEventListener('click', addOne);
   panel.querySelector('#adminCopyAll').addEventListener('click', copyAll);
   const fileInput = panel.querySelector('#adminCsvFile');
   panel.querySelector('#adminImport').addEventListener('click', () => fileInput.click());
@@ -172,6 +178,26 @@ async function createCodes() {
   const skipped = names.length - created.length;
   textarea.value = '';
   flash(`Created ${created.length} code${created.length === 1 ? '' : 's'}${skipped > 0 ? `, skipped ${skipped} (existing name)` : ''}`);
+  refresh();
+}
+
+async function addOne() {
+  const nameEl = panel.querySelector('#adminOneName');
+  const emailEl = panel.querySelector('#adminOneEmail');
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
+  if (!name) return flash('Enter a name');
+  const r = await fetch('/api/admin/guests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(email ? { name, email } : { name }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) return flash(d.error || 'Could not add guest');
+  if (!Array.isArray(d) || !d.length) return flash('Skipped — name or email already exists');
+  nameEl.value = '';
+  emailEl.value = '';
+  flash(`Added ${d[0].name}${d[0].email ? ` — you can send their invite now` : ''}`);
   refresh();
 }
 

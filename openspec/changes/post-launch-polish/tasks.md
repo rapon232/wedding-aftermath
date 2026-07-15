@@ -54,13 +54,13 @@
 
 ## 8. Add guest by name + email (guest-invites)
 
-- [ ] 8.1 Extend `POST /api/admin/guests` to accept an optional `email` for a single-guest create (validate with the existing `isEmail`, dedupe by email + name)
-- [ ] 8.2 Admin panel: an inline name + email input for adding one guest, so an invite can be sent immediately without CSV
-- [ ] 8.3 Keep the existing multi-name textarea working (names without email still allowed)
-- [ ] 8.4 After creating with an email, the row's "Send invite" button is available
+- [x] 8.1 Extend `POST /api/admin/guests` to accept an optional `email` for a single-guest create (validate with the existing `isEmail`, dedupe by email + name)
+- [x] 8.2 Admin panel: an inline name + email input for adding one guest, so an invite can be sent immediately without CSV
+- [x] 8.3 Keep the existing multi-name textarea working (names without email still allowed)
+- [x] 8.4 After creating with an email, the row's "Send invite" button is available
 
 ## 9. Validation & deploy
 
-- [ ] 9.1 `npm run build` clean; existing test suite green; add/adjust tests where practical (nav-bounds predicate, create-with-email)
-- [ ] 9.2 Verify no secrets in tracked files before each commit
+- [x] 9.1 `npm run build` clean; existing test suite green; add/adjust tests where practical (nav-bounds predicate, create-with-email)
+- [x] 9.2 Verify no secrets in tracked files before each commit
 - [ ] 9.3 Deploy via GHCR pull → Container Manager recreate; then run the backfill dry-run, review, and apply

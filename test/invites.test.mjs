@@ -39,6 +39,22 @@ test('creating a guest with an existing name is skipped (no duplicate)', async (
   assert.equal(dupe.data[0].name, 'Brand New');
 });
 
+test('create a single guest with name + email (hand-add without CSV)', async () => {
+  const r = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { name: 'Solo Sam', email: 'sam@example.com' } });
+  assert.equal(r.status, 201);
+  assert.equal(r.data.length, 1);
+  assert.equal(r.data[0].email, 'sam@example.com');
+  // the guest shows up with their email, so Send invite is available
+  const g = (await req(srv.base, 'GET', '/api/admin/guests', { cookie: admin })).data.find((x) => x.id === r.data[0].id);
+  assert.equal(g.email, 'sam@example.com');
+  // duplicate email is skipped
+  const dupe = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { name: 'Sam Twin', email: 'sam@example.com' } });
+  assert.equal(dupe.data.length, 0);
+  // an email alongside multiple names is rejected
+  const bad = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['A B', 'C D'], email: 'x@example.com' } });
+  assert.equal(bad.status, 400);
+});
+
 test('make-admin grants and revokes, but never removes the last admin', async () => {
   const g = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Deputy'] } });
   const id = g.data[0].id;

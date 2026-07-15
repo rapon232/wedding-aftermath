@@ -138,6 +138,12 @@ body.selecting .cell.selected img { opacity: .7; }
   border: 1.5px solid var(--cream-mid); border-radius: 12px; background: var(--cream-card); color: var(--text);
 }
 .admin-add textarea:focus { outline: none; border-color: var(--mint); }
+.admin-add-one { display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px; flex-wrap: wrap; }
+.admin-add-one input {
+  flex: 1; min-width: 120px; font-family: inherit; font-size: .85rem; padding: 9px 12px;
+  border: 1.5px solid var(--cream-mid); border-radius: 12px; background: var(--cream-card); color: var(--text);
+}
+.admin-add-one input:focus { outline: none; border-color: var(--mint); }
 .admin-actions-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .admin-msg { font-size: .75rem; color: var(--mint-dark); }
 .admin-list-wrap { overflow-y: auto; border: 1.5px solid var(--cream-mid); border-radius: 12px; background: var(--cream-card); }
