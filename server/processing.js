@@ -160,6 +160,18 @@ function wallClockToUtc(y, mo, d, h, mi, s, tz) {
   return new Date(utc).toISOString();
 }
 
+/**
+ * Parse a video creation timestamp to UTC. Handles the tz-aware QuickTime form
+ * ("2026-07-11T21:01:14+0200"), the UTC creation_time form ("…Z"), and a naive
+ * timestamp (interpreted in config.eventTz). Reuses exifToUtc's offset logic.
+ */
+function parseVideoDate(s) {
+  if (!s) return null;
+  const str = String(s).trim();
+  const om = str.match(/(Z|[+-]\d{2}:?\d{2})$/i); // trailing offset, if any
+  return exifToUtc(str, om ? om[1] : '');
+}
+
 async function processVideo(m, original) {
   const poster = path.join(dirs.posters, `${m.id}.jpg`);
 
@@ -167,18 +179,39 @@ async function processVideo(m, original) {
   let duration = null;
   let takenAt = null;
   try {
+    // Read BOTH container (format) and video-stream metadata: some phones put
+    // duration/creation only on the stream, others only on the container.
     const { stdout } = await execFileP(FFPROBE, [
       '-v', 'error',
-      '-show_entries', 'format=duration:format_tags=creation_time',
+      '-show_entries', 'format=duration:format_tags:stream=duration:stream_tags',
       '-of', 'json', original,
     ]);
     const probe = JSON.parse(stdout);
-    const d = Number(probe?.format?.duration);
-    if (Number.isFinite(d) && d > 0) duration = d;
-    const created = new Date(probe?.format?.tags?.creation_time);
-    if (!Number.isNaN(created.getTime())) takenAt = created.toISOString();
-  } catch {
-    /* probe failure is non-fatal */
+    const fmt = probe?.format || {};
+    const streams = Array.isArray(probe?.streams) ? probe.streams : [];
+
+    // Duration: container first, else the first stream that reports one.
+    let dur = Number(fmt.duration);
+    if (!(Number.isFinite(dur) && dur > 0)) {
+      for (const st of streams) {
+        const sd = Number(st?.duration);
+        if (Number.isFinite(sd) && sd > 0) { dur = sd; break; }
+      }
+    }
+    if (Number.isFinite(dur) && dur > 0) duration = dur;
+
+    // Capture date: prefer the timezone-aware QuickTime tag, then plain
+    // creation_time (UTC), searching container tags then each stream's tags.
+    const tagSources = [fmt.tags || {}, ...streams.map((s) => s?.tags || {})];
+    const pick = (key) => tagSources.map((t) => t[key]).find(Boolean);
+    const rawDate = pick('com.apple.quicktime.creationdate') || pick('creation_time');
+    if (rawDate) takenAt = parseVideoDate(rawDate);
+
+    if (!duration || !takenAt) {
+      console.warn(`video probe incomplete for ${m.id} (${m.filename}): duration=${duration} takenAt=${takenAt}`);
+    }
+  } catch (err) {
+    console.warn(`ffprobe failed for ${m.id} (${m.filename}): ${err.message}`);
   }
 
   // Poster frame at 1s in; very short clips fall back to the first frame

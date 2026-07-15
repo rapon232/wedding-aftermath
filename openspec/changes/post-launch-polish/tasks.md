@@ -36,12 +36,12 @@
 
 ## 6. Video metadata extraction (media-upload)
 
-- [ ] 6.1 Run `ffprobe` on a real phone video (from the user) to confirm where duration + creation date live (format vs stream, which tag, timezone)
-- [ ] 6.2 Probe `format` **and** `stream` entries; take duration from whichever is present
-- [ ] 6.3 Read capture date from `format_tags.creation_time`, `stream_tags.creation_time`, and `com.apple.quicktime.creationdate`; prefer the tag that carries a timezone offset
-- [ ] 6.4 Timezone handling: trust an explicit offset/`Z`; interpret a naive timestamp in `EVENT_TZ` (reuse the photo path's `wallClockToUtc`)
-- [ ] 6.5 Log (not swallow) when a probe yields no duration/date, so gaps are visible in logs
-- [ ] 6.6 Confirm the thumbnail duration badge now renders (listing already returns `duration_s`)
+- [x] 6.1 Run `ffprobe` on a real phone video (from the user) to confirm where duration + creation date live (format vs stream, which tag, timezone)
+- [x] 6.2 Probe `format` **and** `stream` entries; take duration from whichever is present
+- [x] 6.3 Read capture date from `format_tags.creation_time`, `stream_tags.creation_time`, and `com.apple.quicktime.creationdate`; prefer the tag that carries a timezone offset
+- [x] 6.4 Timezone handling: trust an explicit offset/`Z`; interpret a naive timestamp in `EVENT_TZ` (reuse the photo path's `wallClockToUtc`)
+- [x] 6.5 Log (not swallow) when a probe yields no duration/date, so gaps are visible in logs
+- [x] 6.6 Confirm the thumbnail duration badge now renders (listing already returns `duration_s`)
 
 ## 7. Video taken_at backfill (media-upload) — non-destructive
 
