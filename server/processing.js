@@ -185,9 +185,13 @@ export async function probeVideoMeta(original, label = original) {
   try {
     // Read BOTH container (format) and video-stream metadata: some phones put
     // duration/creation only on the stream, others only on the container.
+    // Use full section dumps (not a combined -show_entries query): some ffprobe
+    // builds drop the duration field when format/stream sections are mixed in
+    // one -show_entries, returning tags but no duration. -show_format/-show_streams
+    // reliably returns both.
     const { stdout } = await execFileP(FFPROBE, [
       '-v', 'error',
-      '-show_entries', 'format=duration:format_tags:stream=duration:stream_tags',
+      '-show_format', '-show_streams',
       '-of', 'json', original,
     ]);
     const probe = JSON.parse(stdout);
