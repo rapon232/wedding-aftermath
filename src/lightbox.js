@@ -100,6 +100,31 @@ function build() {
     close();
     onUploaderClick(it.uploader_id); // gallery filters to this uploader + reloads
   });
+  // On touch devices, "Save" opens the native share sheet with the original
+  // file — iOS/Android offer "Save Image/Video" straight into the photo
+  // library there, instead of a Files download. Falls back to the plain
+  // download link when share isn't available (or the fetch/share fails).
+  const dl = overlay.querySelector('.lb-download');
+  dl.addEventListener('click', async (e) => {
+    const item = list[idx];
+    if (!item || !('ontouchstart' in window) || !navigator.canShare) return; // plain download
+    e.preventDefault();
+    const label = dl.textContent;
+    dl.textContent = 'Saving…';
+    try {
+      const r = await fetch(`/media/file/${item.id}`);
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const file = new File([blob], item.filename, { type: blob.type });
+      if (!navigator.canShare({ files: [file] })) throw new Error();
+      await navigator.share({ files: [file] });
+    } catch (err) {
+      // Cancelling the sheet is fine; anything else falls back to download.
+      if (err?.name !== 'AbortError') location.href = `/media/file/${item.id}?download=1`;
+    } finally {
+      dl.textContent = label;
+    }
+  });
   overlay.querySelector('.lb-comment').addEventListener('click', toggleComments);
   overlay.querySelector('.lb-comments-close').addEventListener('click', () => setComments(false));
   overlay.querySelector('.lb-comment-form').addEventListener('submit', submitComment);
