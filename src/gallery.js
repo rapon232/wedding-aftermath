@@ -417,13 +417,9 @@ function cell(item, index) {
   btn.dataset.id = item.id;
   btn.dataset.index = index;
   btn.setAttribute('aria-label', `${item.type} by ${item.uploader_name}`);
-  if (item.pinned_at) {
-    btn.classList.add('pinned');
-    const badge = document.createElement('span');
-    badge.className = 'cell-pin';
-    badge.textContent = '✦';
-    btn.appendChild(badge);
-  }
+  // Pinned items live in their own "✦ Pinned" section, so no per-cell corner
+  // icon is needed. (Keep the class for the subtle ring.)
+  if (item.pinned_at) btn.classList.add('pinned');
   if (isNew(item)) {
     const nb = document.createElement('span');
     nb.className = 'cell-new';
@@ -441,17 +437,11 @@ function cell(item, index) {
   img.src = `/media/thumb/${item.id}`;
   btn.appendChild(img);
 
-  if (item.type === 'video') {
-    const play = document.createElement('span');
-    play.className = 'cell-play';
-    play.textContent = '▶';
-    btn.appendChild(play);
-    if (item.duration_s) {
-      const chip = document.createElement('span');
-      chip.className = 'cell-duration';
-      chip.textContent = fmtDuration(item.duration_s);
-      btn.appendChild(chip);
-    }
+  if (item.type === 'video' && item.duration_s) {
+    const chip = document.createElement('span');
+    chip.className = 'cell-duration';
+    chip.textContent = fmtDuration(item.duration_s);
+    btn.appendChild(chip);
   }
 
   // Favorite heart (bottom-left). Tapping it toggles without opening the lightbox.

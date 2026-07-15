@@ -176,13 +176,6 @@ body.selecting .cell.selected img { opacity: .7; }
 @media (hover: hover) {
   .cell:hover img { transform: scale(1.04); }
 }
-.cell-play {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;
-  width: 34px; height: 34px; border-radius: 50%; padding-left: 2px;
-  background: rgba(20,10,13,.5); backdrop-filter: blur(2px);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: .8rem; pointer-events: none;
-}
 .cell-duration {
   position: absolute; right: 6px; bottom: 6px; z-index: 2; font-size: .66rem; font-weight: 600;
   color: #fff; background: rgba(20,10,13,.65); padding: 2px 7px; border-radius: 6px; pointer-events: none;
@@ -219,6 +212,9 @@ body.lightbox-open { overflow: hidden; }
   position: fixed; inset: 0; z-index: 200;
   background: #1a0d11; /* bordeaux-tinted dark, fully opaque so nothing bleeds through */
   display: flex; flex-direction: column;
+  /* Promote to its own GPU layer: iOS Safari otherwise leaves a 1px repaint
+     seam (the scrolling gallery peeks through) when the page scrolls behind. */
+  transform: translateZ(0);
 }
 .lb-stage {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
