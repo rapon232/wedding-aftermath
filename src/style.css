@@ -143,6 +143,20 @@ h1 em {
   display: flex;
   gap: 8px;
 }
+/* Phones: the four buttons can't share one row without crushing into the
+   screen edge — give the actions their own full-width two-column grid. */
+@media (max-width: 640px) {
+  .header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .header-actions .btn {
+    justify-content: center;
+    white-space: nowrap;
+    padding: 12px 10px;
+  }
+}
 .gallery-empty {
   color: var(--text-muted);
   font-size: 0.9rem;
@@ -503,9 +517,6 @@ body.selecting .cell.selected img {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
-.lb-pin {
-  color: #ffe08a;
-}
 .lb-video-fallback {
   width: min(90vw, 700px);
   aspect-ratio: 16/10;
@@ -686,40 +697,53 @@ body.lightbox-open .wrapper {
     padding: 0 12px;
   }
 }
+/* Action pills: same frosted-glass + line-icon language as the round
+   close/prev/next chrome, so the whole lightbox speaks with one voice. */
 .btn-lb {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
   text-decoration: none;
   color: #f7f3ee;
-  background: rgba(247, 243, 238, 0.14);
+  background: rgba(247, 243, 238, 0.12);
   border: none;
-  border-radius: 10px;
+  border-radius: 999px;
   /* uniform height, content vertically + horizontally centered so every button lines up */
   height: 40px;
-  min-width: 40px;
+  min-width: 44px;
   padding: 0 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
   white-space: nowrap;
   line-height: 1;
+  backdrop-filter: blur(4px);
+}
+.btn-lb svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  transition:
+    fill 0.15s,
+    color 0.15s;
 }
 .btn-lb:hover {
-  background: rgba(247, 243, 238, 0.26);
+  background: rgba(247, 243, 238, 0.24);
 }
 .lb-delete {
   color: #ffb3c1;
 }
-.lb-pin {
-  font-size: 1rem;
-}
+/* Pinned: mint — the site's curation accent (toolbar, filters). */
 .lb-pin.active {
-  background: rgba(255, 224, 138, 0.28);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 224, 138, 0.6);
+  background: rgba(109, 184, 168, 0.22);
+  box-shadow: inset 0 0 0 1.5px rgba(109, 184, 168, 0.55);
+  color: var(--mint-light);
 }
 
 /* "Tap for sound" pill over a muted-autoplay video */
@@ -1062,17 +1086,14 @@ body.selecting .cell-fav {
   display: none;
 }
 
-/* Lightbox favorite button */
-.lb-fav {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
+/* Lightbox favorite button — faved fills the heart blush over bordeaux glass */
 .lb-fav.faved {
-  color: #ff8fab;
+  background: rgba(176, 85, 117, 0.3);
+  box-shadow: inset 0 0 0 1.5px rgba(240, 185, 200, 0.45);
 }
 .lb-fav.faved .lb-fav-icon {
-  color: #ff5c8a;
+  color: var(--bordeaux-pale);
+  fill: var(--bordeaux-pale);
 }
 .lb-stage img {
   transition: transform 0.08s ease-out;
