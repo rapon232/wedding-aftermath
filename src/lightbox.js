@@ -219,7 +219,8 @@ function setupZoom(img) {
   let panning = false,
     panX = 0,
     panY = 0,
-    lastTap = 0;
+    lastTap = 0,
+    tapZoomed = false; // a double-tap zoom just ran — its touchend must not settle()
 
   const measure = () => {
     const s = img.parentElement.getBoundingClientRect();
@@ -318,6 +319,7 @@ function setupZoom(img) {
           e.preventDefault();
           cancelTap(); // it was a double-tap, not a chrome toggle
           lastTap = 0; // a third tap starts fresh
+          tapZoomed = true;
           // Don't fall through to pan-arming: its smooth(false) would kill
           // the zoom tween before it ever painted.
           return;
@@ -360,6 +362,13 @@ function setupZoom(img) {
     { passive: false },
   );
   const endGesture = (e) => {
+    if (tapZoomed) {
+      // The lift after a double-tap zoom: settle()'s smooth(true) would
+      // replace the springy tween mid-flight — leave the animation alone.
+      tapZoomed = false;
+      panning = false;
+      return;
+    }
     if (e.touches.length === 1 && pinch) {
       // Pinch → one-finger pan handoff without a jump.
       pinch = null;
