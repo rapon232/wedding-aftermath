@@ -317,6 +317,10 @@ function setupZoom(img) {
           }
           e.preventDefault();
           cancelTap(); // it was a double-tap, not a chrome toggle
+          lastTap = 0; // a third tap starts fresh
+          // Don't fall through to pan-arming: its smooth(false) would kill
+          // the zoom tween before it ever painted.
+          return;
         }
         lastTap = now;
         if (scale > 1) {
