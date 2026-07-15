@@ -442,6 +442,7 @@ function cell(item, index) {
     }
     openLightbox(items, Number(btn.dataset.index), {
       loadMore: () => (nextCursor && !loading ? loadPage() : null),
+      hasMore: () => !!nextCursor,
     });
   });
   return btn;
@@ -557,7 +558,10 @@ export function maybeOpenFromHash() {
   const id = m[1];
   const idx = items.findIndex((x) => x.id === id);
   if (idx !== -1) {
-    openLightbox(items, idx, { loadMore: () => (nextCursor && !loading ? loadPage() : null) });
+    openLightbox(items, idx, {
+      loadMore: () => (nextCursor && !loading ? loadPage() : null),
+      hasMore: () => !!nextCursor,
+    });
   } else {
     // Not loaded yet (deep link to a specific item): fetch it and open a one-item view.
     fetch(`/api/media/${id}`)

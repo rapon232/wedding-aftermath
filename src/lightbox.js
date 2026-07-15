@@ -227,8 +227,10 @@ function show() {
   overlay.querySelector('.lb-comment-n').textContent = '';
   loadComments(item.id);
   overlay.querySelector('.lb-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
-  overlay.querySelector('.lb-next').style.visibility =
-    idx < list.length - 1 || opts.loadMore ? 'visible' : 'hidden';
+  // Show "next" only if there's really a next item or another page still to fetch.
+  // (opts.loadMore is always a function, so check hasMore() — not its existence.)
+  const more = idx < list.length - 1 || (opts.hasMore ? opts.hasMore() : false);
+  overlay.querySelector('.lb-next').style.visibility = more ? 'visible' : 'hidden';
   onNavigate(item);
 
   // Preload neighbouring photo previews for instant navigation
