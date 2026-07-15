@@ -16,10 +16,10 @@
 
 ## 3. Smooth pinch/pan zoom (gallery-browse)
 
-- [ ] 3.1 In `setupZoom`, coalesce `transform` writes into a single `requestAnimationFrame` (drop redundant writes per touch event)
-- [ ] 3.2 Add `will-change: transform` while zoomed; remove it when reset
-- [ ] 3.3 Apply a short transition only on release/reset (not during the gesture)
-- [ ] 3.4 Confirm swipe-to-navigate still suppresses while zoomed
+- [x] 3.1 In `setupZoom`, coalesce `transform` writes into a single `requestAnimationFrame` (drop redundant writes per touch event)
+- [x] 3.2 Add `will-change: transform` while zoomed; remove it when reset
+- [x] 3.3 Apply a short transition only on release/reset (not during the gesture)
+- [x] 3.4 Confirm swipe-to-navigate still suppresses while zoomed
 
 ## 4. Uploader name → filter link (gallery-browse)
 

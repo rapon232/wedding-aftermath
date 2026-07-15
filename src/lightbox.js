@@ -112,29 +112,45 @@ const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - 
 
 function setupZoom(img) {
   let scale = 1, tx = 0, ty = 0, startDist = 0, startScale = 1, lastTap = 0;
-  let panning = false, panX = 0, panY = 0;
-  const apply = () => {
+  let panning = false, panX = 0, panY = 0, raf = 0;
+  // Batch transform writes to one per animation frame — writing on every
+  // touchmove is what made pinch/pan jitter on phones.
+  const paint = () => {
+    raf = 0;
     img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  };
+  const apply = () => {
     zoomed = scale > 1;
     img.style.cursor = scale > 1 ? 'grab' : '';
+    img.style.willChange = scale > 1 ? 'transform' : 'auto';
+    if (!raf) raf = requestAnimationFrame(paint);
   };
+  const smooth = (on) => (img.style.transition = on ? 'transform .18s ease' : 'none');
   const reset = () => {
+    smooth(true); // animate the snap-back
     scale = 1;
     tx = ty = 0;
     apply();
   };
+  const zoomIn = () => {
+    smooth(true); // animate the discrete jump
+    scale = 2.5;
+    apply();
+  };
   img.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) {
+      smooth(false); // no transition mid-gesture
       startDist = touchDist(e.touches);
       startScale = scale;
     } else if (e.touches.length === 1) {
       const now = Date.now();
       if (now - lastTap < 300) {
-        scale > 1 ? reset() : ((scale = 2.5), apply());
+        scale > 1 ? reset() : zoomIn();
         e.preventDefault();
       }
       lastTap = now;
       if (scale > 1) {
+        smooth(false);
         panning = true;
         panX = e.touches[0].clientX - tx;
         panY = e.touches[0].clientY - ty;
@@ -158,7 +174,7 @@ function setupZoom(img) {
     panning = false;
     if (scale <= 1) reset();
   });
-  img.addEventListener('dblclick', () => (scale > 1 ? reset() : ((scale = 2.5), apply())));
+  img.addEventListener('dblclick', () => (scale > 1 ? reset() : zoomIn()));
 }
 
 function show() {
