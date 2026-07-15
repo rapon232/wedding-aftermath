@@ -22,5 +22,5 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Run `npm test`, `npm run build`, and `npm run format:check`; fix any fallout
+- [x] 4.1 Run `npm test`, `npm run build`, and `npm run format:check`; fix any fallout
 - [ ] 4.2 On-device manual checklist (iPhone Safari + Android Chrome): focal pinch on a corner detail stays under the fingers; two-finger pan tracks; double-tap zooms to the tapped spot; pan rubber-bands and snaps back at edges; sub-1× pinch springs back; tap toggles chrome and persists across swipes; pinch hides chrome; swipe-down closes past threshold and springs back before it; background tap no longer closes; video taps still control playback; comments panel tap-to-close, swipe-nav, Esc/X close all still work
