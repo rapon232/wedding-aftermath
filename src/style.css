@@ -235,7 +235,7 @@ body.lightbox-open { overflow: hidden; }
   padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
   background: linear-gradient(transparent, rgba(26,13,17,.85));
 }
-.lb-by { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 1.05rem; color: #f7f3ee; }
+.lb-by { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 1.05rem; color: #f7f3ee; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .lb-date { font-size: .78rem; color: rgba(247,243,238,.65); margin-left: 10px; }
 .lb-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 /* Empty count → no extra flex item/gap, so the lone emoji stays centered. */

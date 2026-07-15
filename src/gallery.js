@@ -38,6 +38,12 @@ export function initGallery(user) {
     onPinned: reload,
     onFaved: updateFavUi,
     onNavigate: (item) => setHash(item?.id),
+    onUploaderClick: (uploaderId) => {
+      if (uploaderId == null) return;
+      state.uploader = String(uploaderId);
+      syncUrl();
+      reload(); // reloads filtered + refreshes the uploader dropdown selection
+    },
   });
 
   const sentinel = document.getElementById('sentinel');

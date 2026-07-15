@@ -23,9 +23,9 @@
 
 ## 4. Uploader name → filter link (gallery-browse)
 
-- [ ] 4.1 Render `.lb-by` as a button/link carrying `uploader_id`
-- [ ] 4.2 On click: close the lightbox, set the gallery uploader filter, sync URL, reload
-- [ ] 4.3 Ensure the resulting filtered lightbox uses the corrected nav bounds from group 1
+- [x] 4.1 Render `.lb-by` as a button/link carrying `uploader_id`
+- [x] 4.2 On click: close the lightbox, set the gallery uploader filter, sync URL, reload
+- [x] 4.3 Ensure the resulting filtered lightbox uses the corrected nav bounds from group 1
 
 ## 5. Comments panel smoothness (gallery-browse)
 

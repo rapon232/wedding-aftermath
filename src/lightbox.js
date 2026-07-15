@@ -7,6 +7,7 @@ let onDeleted = () => {};
 let onPinned = () => {};
 let onFaved = () => {};
 let onNavigate = () => {};
+let onUploaderClick = () => {};
 let list = [];
 let idx = 0;
 let opts = {};
@@ -20,6 +21,7 @@ export function initLightbox(config) {
   onPinned = config.onPinned || (() => {});
   onFaved = config.onFaved || (() => {});
   onNavigate = config.onNavigate || (() => {});
+  onUploaderClick = config.onUploaderClick || (() => {});
 }
 
 export function openLightbox(items, index, o = {}) {
@@ -74,6 +76,12 @@ function build() {
   overlay.querySelector('.lb-delete').addEventListener('click', del);
   overlay.querySelector('.lb-pin').addEventListener('click', togglePin);
   overlay.querySelector('.lb-fav').addEventListener('click', toggleFav);
+  overlay.querySelector('.lb-by').addEventListener('click', () => {
+    const it = list[idx];
+    if (!it) return;
+    close();
+    onUploaderClick(it.uploader_id); // gallery filters to this uploader + reloads
+  });
   overlay.querySelector('.lb-comment').addEventListener('click', toggleComments);
   overlay.querySelector('.lb-comments-close').addEventListener('click', () => setComments(false));
   overlay.querySelector('.lb-comment-form').addEventListener('submit', submitComment);
