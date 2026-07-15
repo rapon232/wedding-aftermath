@@ -539,6 +539,14 @@ body.selecting .cell.selected img {
 /* --- Lightbox --- */
 body.lightbox-open {
   overflow: hidden;
+  /* iOS Safari leaves occasional subpixel seams at the composited overlay's
+     edges. Hide the gallery outright (visibility keeps layout + scroll
+     position) and match the body colour, so any hairline shows dark-on-dark
+     instead of the page peeking through. */
+  background: #1a0d11;
+}
+body.lightbox-open .wrapper {
+  visibility: hidden;
 }
 .lightbox {
   position: fixed;
