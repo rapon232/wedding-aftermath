@@ -283,7 +283,9 @@ function setupZoom(img) {
   };
   // Discrete focal jump to the tapped point (hard-clamped, no rubber).
   const zoomTo = (x, y) => {
-    smooth(true);
+    // Overshooting ease (easeOutBack): the zoom-in bounces slightly past
+    // 2.5× and settles — same rubber feel as the pinch release.
+    img.style.transition = 'transform .32s cubic-bezier(.34, 1.56, .64, 1)';
     measure();
     const m = { x: x - base.cx, y: y - base.cy };
     const f = TAP_ZOOM_SCALE / scale;
