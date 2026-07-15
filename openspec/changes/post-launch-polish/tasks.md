@@ -10,9 +10,9 @@
 
 ## 2. Lightbox control centering (gallery-browse)
 
-- [ ] 2.1 Center the prev/next/close glyphs (replace `‹ › ✕` text with inline SVG icons, or lock `line-height:1` + flex centering) so they sit dead-center in the round buttons
-- [ ] 2.2 Center the prev/next buttons relative to the media stage (account for the caption bar) so they read as vertically centered
-- [ ] 2.3 Check on mobile + desktop, including notch/safe-area
+- [x] 2.1 Center the prev/next/close glyphs (replace `‹ › ✕` text with inline SVG icons, or lock `line-height:1` + flex centering) so they sit dead-center in the round buttons
+- [x] 2.2 Center the prev/next buttons relative to the media stage (account for the caption bar) so they read as vertically centered
+- [x] 2.3 Check on mobile + desktop, including notch/safe-area
 
 ## 3. Smooth pinch/pan zoom (gallery-browse)
 

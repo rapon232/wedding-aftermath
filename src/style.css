@@ -225,6 +225,7 @@ body.lightbox-open { overflow: hidden; }
   transition: background .15s; backdrop-filter: blur(4px);
 }
 .lb-btn:hover { background: rgba(247,243,238,.24); }
+.lb-btn svg { width: 22px; height: 22px; display: block; }
 .lb-close { top: 14px; right: 14px; }
 .lb-prev { left: 10px; top: 50%; transform: translateY(-50%); }
 .lb-next { right: 10px; top: 50%; transform: translateY(-50%); }
