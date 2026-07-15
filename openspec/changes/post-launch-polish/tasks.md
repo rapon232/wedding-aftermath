@@ -29,10 +29,10 @@
 
 ## 5. Comments panel smoothness (gallery-browse)
 
-- [ ] 5.1 Load comments lazily — only when the panel is first opened for an item, not on every navigation; keep the count badge cheap (already returned by the listing)
-- [ ] 5.2 Cache/clear per-item so switching items doesn't refetch needlessly or show stale comments
-- [ ] 5.3 Round the `.lb-comments-close` button (border-radius: 50%), matching the other round controls
-- [ ] 5.4 Verify no jank/hang when opening/closing the panel repeatedly on a phone
+- [x] 5.1 Load comments lazily — only when the panel is first opened for an item, not on every navigation; keep the count badge cheap (already returned by the listing)
+- [x] 5.2 Cache/clear per-item so switching items doesn't refetch needlessly or show stale comments
+- [x] 5.3 Round the `.lb-comments-close` button (border-radius: 50%), matching the other round controls
+- [x] 5.4 Verify no jank/hang when opening/closing the panel repeatedly on a phone
 
 ## 6. Video metadata extraction (media-upload)
 

@@ -224,8 +224,11 @@ function show() {
   pinBtn.setAttribute('aria-label', item.pinned_at ? 'Unpin' : 'Pin');
   updateFavBtn(item);
   setComments(false); // collapse panel on every item change
-  overlay.querySelector('.lb-comment-n').textContent = '';
-  loadComments(item.id);
+  // Lazy comments: show the count from the listing, but don't fetch the thread
+  // until the panel is actually opened (fetching on every swipe janked mobile).
+  comments = [];
+  commentsLoadedFor = null;
+  overlay.querySelector('.lb-comment-n').textContent = item.comment_count || '';
   overlay.querySelector('.lb-prev').style.visibility = idx > 0 ? 'visible' : 'hidden';
   // Show "next" only if there's really a next item or another page still to fetch.
   // (opts.loadMore is always a function, so check hasMore() — not its existence.)
@@ -279,11 +282,16 @@ function showVideoFallback(stage, item) {
 // --- Comments ---
 let commentsOpen = false;
 let comments = [];
+let commentsLoadedFor = null; // media id whose thread is currently loaded
 
 function setComments(open) {
   commentsOpen = open;
   overlay.querySelector('.lb-comments').classList.toggle('open', open);
-  if (open) setTimeout(() => overlay.querySelector('.lb-comment-input').focus(), 50);
+  if (open) {
+    const id = list[idx]?.id;
+    if (id && commentsLoadedFor !== id) loadComments(id); // fetch only on first open
+    setTimeout(() => overlay.querySelector('.lb-comment-input').focus(), 50);
+  }
 }
 
 function toggleComments() {
@@ -297,6 +305,7 @@ async function loadComments(mediaId) {
     const data = await r.json();
     if (list[idx]?.id !== mediaId) return; // navigated away while loading
     comments = data;
+    commentsLoadedFor = mediaId;
     renderComments();
   } catch {
     /* offline — leave panel empty */
@@ -305,6 +314,8 @@ async function loadComments(mediaId) {
 
 function renderComments() {
   overlay.querySelector('.lb-comment-n').textContent = comments.length || '';
+  if (list[idx]) list[idx].comment_count = comments.length; // keep badge/count honest
+
   const ul = overlay.querySelector('.lb-comments-list');
   ul.innerHTML = '';
   if (!comments.length) {
