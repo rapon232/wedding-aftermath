@@ -1,7 +1,7 @@
 # Deploying **#LoveWins. The Aftermath**
 
 A complete, do-it-in-order guide to putting the gallery online at
-`aftermath.mitio.tech`, testing it privately with Jenny, and only *then*
+`aftermath.mitio.tech`, testing it privately with Jenny, and only _then_
 inviting all your guests.
 
 Same shape as your `wedding.mitio.tech` setup: **one Docker container on the
@@ -9,7 +9,7 @@ Synology NAS, reached through a Cloudflare tunnel.** No ports opened to the
 internet, all photos stay on the NAS.
 
 > **Golden rule:** do every step below with just you and Jenny first. The very
-> last section — *Invite everyone* — is the last thing you do, after it all works.
+> last section — _Invite everyone_ — is the last thing you do, after it all works.
 
 ---
 
@@ -43,16 +43,16 @@ You need:
 
 - [ ] **Synology NAS** with **Container Manager** (DSM 7.2+) or Docker installed — the same one running `wedding.mitio.tech`.
 - [ ] **cloudflared tunnel** already working for `wedding.mitio.tech` (you have this).
-- [ ] **SSH access** to the NAS (Control Panel → Terminal & SNMP → Enable SSH), *or* you'll use the Container Manager GUI.
+- [ ] **SSH access** to the NAS (Control Panel → Terminal & SNMP → Enable SSH), _or_ you'll use the Container Manager GUI.
 - [ ] The domain **`mitio.tech`** on Cloudflare (you have this).
 - [ ] ~30 minutes.
 
 Decide two things up front:
 
-| Setting | Recommended value | Why |
-|---|---|---|
+| Setting                    | Recommended value                        | Why                                                                     |
+| -------------------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
 | **Data folder on the NAS** | `/volume1/docker/wedding_aftermath_data` | Where all media + DB live. Pick a share your NAS backup already covers. |
-| **Local port** | `3000` (or any free port) | cloudflared will connect to this on the NAS. |
+| **Local port**             | `3000` (or any free port)                | cloudflared will connect to this on the NAS.                            |
 
 ---
 
@@ -174,10 +174,10 @@ Add an ingress rule next to your existing `wedding` one:
 ```yaml
 ingress:
   - hostname: wedding.mitio.tech
-    service: http://localhost:8080      # your existing app
+    service: http://localhost:8080 # your existing app
   - hostname: aftermath.mitio.tech
-    service: http://localhost:3000      # this app (HOST_PORT)
-  - service: http_status:404            # keep this catch-all LAST
+    service: http://localhost:3000 # this app (HOST_PORT)
+  - service: http_status:404 # keep this catch-all LAST
 ```
 
 Then restart cloudflared (e.g. `sudo systemctl restart cloudflared`, or restart
@@ -200,6 +200,7 @@ code. 🎉
 Do this before anyone else touches it.
 
 **On your phone (as admin):**
+
 1. Log in with your admin code at `aftermath.mitio.tech`.
 2. Tap **Guests** → type `Jenny` → **Create codes** → copy her code
    (e.g. `JADE-7K2M`). Send it to her.
@@ -211,11 +212,10 @@ Do this before anyone else touches it.
    - a **big video (>100 MB)** over cellular, not Wi-Fi — this exercises the
      chunked-upload path that gets around Cloudflare's limit.
 
-**On Jenny's phone:**
-4. She opens `aftermath.mitio.tech`, enters her code, uploads her own photos.
-5. Check that her uploads show **"by Jenny"** and appear under the right date.
+**On Jenny's phone:** 4. She opens `aftermath.mitio.tech`, enters her code, uploads her own photos. 5. Check that her uploads show **"by Jenny"** and appear under the right date.
 
 **Together, run through every feature:**
+
 - [ ] Tap a photo → it opens full-screen; swipe / arrow-key between photos.
 - [ ] Tap the **♥** on a few — try the **"Most loved ♥"** sort.
 - [ ] Tap **💬** inside a photo, leave a comment, see it appear; delete it.
@@ -223,7 +223,7 @@ Do this before anyone else touches it.
 - [ ] **Select** a few → **Download** → you get a zip. Also try **Download all**.
 - [ ] As admin, open a photo and **✦ Pin** it → it jumps to a featured tile on top.
 - [ ] Add it to your phone home screen ("Add to Home Screen") — it opens like an app.
-- [ ] Delete one of your own uploads; confirm Jenny *can't* delete yours.
+- [ ] Delete one of your own uploads; confirm Jenny _can't_ delete yours.
 
 If anything's off, tell me — it's much easier to fix now than after 65 people are in.
 
@@ -266,15 +266,15 @@ sudo docker compose exec aftermath node scripts/export-all.mjs /data
 
 ## 9. Troubleshooting
 
-| Symptom | Fix |
-|---|---|
+| Symptom                                   | Fix                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Login page loads but code is rejected** | You're using the right code? Re-grab it: `docker compose logs \| grep "access code"`, or `docker compose exec aftermath node scripts/reset-admin.mjs`. |
-| **`aftermath.mitio.tech` won't load** | Tunnel hostname points to the wrong port, or cloudflared wasn't restarted. Check `HOST_PORT` in `.env` matches the tunnel's service URL. |
-| **Container keeps restarting** | `docker compose logs` — most likely `SESSION_SECRET` isn't set in `.env`. |
-| **HEIC photo shows a broken thumbnail** | Tell me — the pure-JS fallback should handle it; I'll adjust. |
-| **Big video upload fails** | Use Wi-Fi, or confirm it's under 2 GB. The app chunks anything over ~90 MB automatically. |
-| **"The gallery is full"** | The NAS volume is low on space (guard trips under 1 GB free). Free space or expand the volume. |
-| **Redeploy after a code change** | `cd /volume1/docker/wedding_aftermath && git pull` (or re-copy files) → `sudo docker compose up -d --build`. Your data in `DATA_PATH` is untouched. |
+| **`aftermath.mitio.tech` won't load**     | Tunnel hostname points to the wrong port, or cloudflared wasn't restarted. Check `HOST_PORT` in `.env` matches the tunnel's service URL.               |
+| **Container keeps restarting**            | `docker compose logs` — most likely `SESSION_SECRET` isn't set in `.env`.                                                                              |
+| **HEIC photo shows a broken thumbnail**   | Tell me — the pure-JS fallback should handle it; I'll adjust.                                                                                          |
+| **Big video upload fails**                | Use Wi-Fi, or confirm it's under 2 GB. The app chunks anything over ~90 MB automatically.                                                              |
+| **"The gallery is full"**                 | The NAS volume is low on space (guard trips under 1 GB free). Free space or expand the volume.                                                         |
+| **Redeploy after a code change**          | `cd /volume1/docker/wedding_aftermath && git pull` (or re-copy files) → `sudo docker compose up -d --build`. Your data in `DATA_PATH` is untouched.    |
 
 ---
 
@@ -286,6 +286,7 @@ You have ~65 guests. Two ways to onboard them:
 
 **Easiest — you already planned this:** download the guest CSV (names + emails)
 from your **Joy.com** wedding page and hand it to me. I'll:
+
 - parse the names and emails,
 - bulk-generate a personal code for each guest,
 - draft the invite emails (personal code + the `aftermath.mitio.tech` link),

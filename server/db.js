@@ -46,7 +46,10 @@ db.exec(`
 
 // Lightweight migrations for DBs created before a column existed.
 function ensureColumn(table, column, ddl) {
-  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  const cols = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .map((c) => c.name);
   if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
 }
 ensureColumn('media', 'width', 'width INTEGER');
@@ -96,8 +99,7 @@ db.exec(`
 /** Generate a human-typable access code like "ROSE-7K3M" (no ambiguous 0/O/1/I). */
 export function generateCode() {
   const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const pick = (n) =>
-    Array.from(crypto.randomBytes(n), (b) => alphabet[b % alphabet.length]).join('');
+  const pick = (n) => Array.from(crypto.randomBytes(n), (b) => alphabet[b % alphabet.length]).join('');
   return `${pick(4)}-${pick(4)}`;
 }
 
@@ -107,5 +109,7 @@ export function bootstrapAdmin() {
   if (count > 0) return;
   const code = generateCode();
   db.prepare('INSERT INTO guests (code, name, is_admin) VALUES (?, ?, 1)').run(code, config.adminName);
-  console.log(`\n★ Admin guest "${config.adminName}" created — access code: ${code}\n  (shown only once; if lost, run: node scripts/reset-admin.mjs — do NOT delete db.sqlite)\n`);
+  console.log(
+    `\n★ Admin guest "${config.adminName}" created — access code: ${code}\n  (shown only once; if lost, run: node scripts/reset-admin.mjs — do NOT delete db.sqlite)\n`,
+  );
 }

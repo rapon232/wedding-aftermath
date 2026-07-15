@@ -22,9 +22,7 @@ export function setSession(res, guestId) {
 export function loadGuest(req, _res, next) {
   const id = Number(req.signedCookies[COOKIE]);
   if (Number.isInteger(id) && id > 0) {
-    const g = db
-      .prepare('SELECT id, name, is_admin, revoked_at FROM guests WHERE id = ?')
-      .get(id);
+    const g = db.prepare('SELECT id, name, is_admin, revoked_at FROM guests WHERE id = ?').get(id);
     if (g && !g.revoked_at) req.guest = g;
   }
   next();
@@ -43,7 +41,9 @@ export function requireAdmin(req, res, next) {
 
 /** Codes are compared dash/case/space-insensitively so guests can't mistype the format. */
 function normalizeCode(input) {
-  return String(input || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return String(input || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
 }
 
 // Minimal brute-force hygiene: 10 login attempts per IP per minute.
@@ -74,9 +74,9 @@ authRouter.post('/api/login', throttleLogin, (req, res) => {
   if (!guest || guest.revoked_at) return res.status(401).json({ error: 'invalid code' });
   setSession(res, guest.id);
   // Stamp first-login time once → drives the "activated" dot in the guest panel.
-  db.prepare("UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL").run(
-    guest.id
-  );
+  db.prepare(
+    "UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL",
+  ).run(guest.id);
   res.json({ id: guest.id, name: guest.name, isAdmin: !!guest.is_admin });
 });
 
@@ -99,7 +99,9 @@ authRouter.get('/api/me', requireApi, (req, res) => {
 });
 
 authRouter.post('/api/seen', requireApi, (req, res) => {
-  db.prepare("UPDATE guests SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?").run(req.guest.id);
+  db.prepare("UPDATE guests SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?").run(
+    req.guest.id,
+  );
   res.json({ ok: true });
 });
 
@@ -107,31 +109,50 @@ authRouter.post('/api/seen', requireApi, (req, res) => {
 
 authRouter.get('/api/admin/guests', requireAdmin, (_req, res) => {
   const guests = db
-    .prepare(`
+    .prepare(
+      `
       SELECT g.id, g.code, g.name, g.email, g.is_admin, g.revoked_at, g.created_at,
              g.invited_at, g.activated_at,
              COUNT(m.id) AS media_count
       FROM guests g LEFT JOIN media m ON m.uploader_id = g.id
       GROUP BY g.id ORDER BY g.name COLLATE NOCASE
-    `)
+    `,
+    )
     .all();
   res.json(guests);
 });
 
 authRouter.post('/api/admin/guests', requireAdmin, (req, res) => {
   const names = Array.isArray(req.body?.names) ? req.body.names : [req.body?.name];
-  const clean = names.map((n) => String(n || '').trim().slice(0, 100)).filter(Boolean);
+  const clean = names
+    .map((n) =>
+      String(n || '')
+        .trim()
+        .slice(0, 100),
+    )
+    .filter(Boolean);
   if (!clean.length) return res.status(400).json({ error: 'name(s) required' });
   // An optional email may be supplied only when adding a single guest by hand,
   // so we can invite them straight away without a CSV import.
-  const emailRaw = String(req.body?.email || '').trim().toLowerCase();
-  if (emailRaw && clean.length !== 1) return res.status(400).json({ error: 'email only allowed with a single name' });
+  const emailRaw = String(req.body?.email || '')
+    .trim()
+    .toLowerCase();
+  if (emailRaw && clean.length !== 1)
+    return res.status(400).json({ error: 'email only allowed with a single name' });
   if (emailRaw && !isEmail(emailRaw)) return res.status(400).json({ error: 'invalid email' });
   const email = emailRaw || null;
   // Skip names (and, if given, emails) that already exist so we don't duplicate.
-  const existing = new Set(db.prepare('SELECT lower(name) AS n FROM guests').all().map((r) => r.n));
+  const existing = new Set(
+    db
+      .prepare('SELECT lower(name) AS n FROM guests')
+      .all()
+      .map((r) => r.n),
+  );
   const existingEmails = new Set(
-    db.prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL').all().map((r) => r.e)
+    db
+      .prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL')
+      .all()
+      .map((r) => r.e),
   );
   const insert = db.prepare('INSERT INTO guests (code, name, email) VALUES (?, ?, ?)');
   const created = [];
@@ -139,7 +160,10 @@ authRouter.post('/api/admin/guests', requireAdmin, (req, res) => {
   db.transaction(() => {
     for (const name of clean) {
       const key = name.toLowerCase();
-      if (existing.has(key) || (email && existingEmails.has(email))) { skipped++; continue; }
+      if (existing.has(key) || (email && existingEmails.has(email))) {
+        skipped++;
+        continue;
+      }
       existing.add(key);
       if (email) existingEmails.add(email);
       const code = generateCode();
@@ -155,7 +179,9 @@ authRouter.post('/api/admin/guests/:id/revoke', requireAdmin, (req, res) => {
   const id = Number(req.params.id);
   if (id === req.guest.id) return res.status(400).json({ error: 'cannot revoke yourself' });
   const info = db
-    .prepare("UPDATE guests SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND revoked_at IS NULL")
+    .prepare(
+      "UPDATE guests SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND revoked_at IS NULL",
+    )
     .run(id);
   if (!info.changes) return res.status(404).json({ error: 'not found or already revoked' });
   res.json({ ok: true });
@@ -174,7 +200,9 @@ authRouter.post('/api/admin/guests/:id/admin', requireAdmin, (req, res) => {
   const g = db.prepare('SELECT id, is_admin FROM guests WHERE id = ?').get(id);
   if (!g) return res.status(404).json({ error: 'not found' });
   if (!makeAdmin) {
-    const admins = db.prepare('SELECT COUNT(*) AS n FROM guests WHERE is_admin = 1 AND revoked_at IS NULL').get().n;
+    const admins = db
+      .prepare('SELECT COUNT(*) AS n FROM guests WHERE is_admin = 1 AND revoked_at IS NULL')
+      .get().n;
     if (g.is_admin && admins <= 1) return res.status(400).json({ error: 'need at least one admin' });
   }
   db.prepare('UPDATE guests SET is_admin = ? WHERE id = ?').run(makeAdmin ? 1 : 0, id);
@@ -192,16 +220,28 @@ authRouter.post('/api/admin/import', requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'provide csv or rows' });
   }
   const existing = new Set(
-    db.prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL').all().map((r) => r.e)
+    db
+      .prepare('SELECT lower(email) AS e FROM guests WHERE email IS NOT NULL')
+      .all()
+      .map((r) => r.e),
   );
-  const existingNames = new Set(db.prepare('SELECT lower(name) AS n FROM guests').all().map((r) => r.n));
+  const existingNames = new Set(
+    db
+      .prepare('SELECT lower(name) AS n FROM guests')
+      .all()
+      .map((r) => r.n),
+  );
   const insert = db.prepare('INSERT INTO guests (code, name, email) VALUES (?, ?, ?)');
   const created = [];
   let skipped = 0;
   db.transaction(() => {
     for (const r of rows) {
-      const name = String(r.name || '').trim().slice(0, 100);
-      const email = String(r.email || '').trim().toLowerCase();
+      const name = String(r.name || '')
+        .trim()
+        .slice(0, 100);
+      const email = String(r.email || '')
+        .trim()
+        .toLowerCase();
       // Skip invalid/duplicate email OR a name that already exists.
       if (!name || !isEmail(email) || existing.has(email) || existingNames.has(name.toLowerCase())) {
         skipped++;
@@ -219,7 +259,9 @@ authRouter.post('/api/admin/import', requireAdmin, (req, res) => {
 
 // Email one guest their personal link + code, and stamp invited_at.
 authRouter.post('/api/admin/guests/:id/invite', requireAdmin, async (req, res, next) => {
-  const g = db.prepare('SELECT id, name, email, code, revoked_at FROM guests WHERE id = ?').get(Number(req.params.id));
+  const g = db
+    .prepare('SELECT id, name, email, code, revoked_at FROM guests WHERE id = ?')
+    .get(Number(req.params.id));
   if (!g) return res.status(404).json({ error: 'not found' });
   if (g.revoked_at) return res.status(400).json({ error: 'guest is revoked' });
   if (!g.email) return res.status(400).json({ error: 'this guest has no email' });
@@ -244,7 +286,7 @@ function parseCsv(text) {
   // Pick the delimiter that appears most in the header line.
   const first = lines[0];
   const delim = [',', ';', '\t']
-    .map((d) => [d, (first.split(d).length - 1)])
+    .map((d) => [d, first.split(d).length - 1])
     .reduce((best, cur) => (cur[1] > best[1] ? cur : best), [',', -1])[0];
   const rows = lines.map((l) => {
     const out = [];
@@ -254,11 +296,16 @@ function parseCsv(text) {
       const c = l[i];
       if (q) {
         if (c === '"') {
-          if (l[i + 1] === '"') { field += '"'; i++; } else q = false;
+          if (l[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else q = false;
         } else field += c;
       } else if (c === '"') q = true;
-      else if (c === delim) { out.push(field); field = ''; }
-      else field += c;
+      else if (c === delim) {
+        out.push(field);
+        field = '';
+      } else field += c;
     }
     out.push(field);
     return out;

@@ -1,93 +1,97 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>#LoveWins. The Aftermath</title>
-  <meta name="theme-color" content="#7b2d42" />
-  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="/icon-192.png" />
-  <!-- Link preview (WhatsApp / iMessage / etc.) -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://aftermath.mitio.tech/" />
-  <meta property="og:title" content="💍JM Family Wedding Memory Vault" />
-  <meta property="og:description" content="Wanna peek?" />
-  <meta property="og:image" content="https://aftermath.mitio.tech/og-image.jpg" />
-  <meta property="og:image:secure_url" content="https://aftermath.mitio.tech/og-image.jpg" />
-  <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="JM Family Wedding" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="💍JM Family Wedding Memory Vault" />
-  <meta name="twitter:description" content="Wanna peek?" />
-  <meta name="twitter:image" content="https://aftermath.mitio.tech/og-image.jpg" />
-  <link rel="stylesheet" href="/fonts/fonts.css" />
-  <link rel="stylesheet" href="/src/style.css" />
-</head>
-<body>
-  <div class="wrapper">
-    <header class="site-header">
-      <div class="header-text">
-        <h1>#LoveWins. <span class="nowrap"><em>The Aftermath</em> <span class="heart">♥</span></span></h1>
-        <p id="welcome" class="header-sub"></p>
-      </div>
-      <div class="header-actions">
-        <button id="uploadBtn" class="btn btn-bx">↑ Upload</button>
-        <button id="noteBtn" class="btn btn-ghost">✍ Leave a note</button>
-        <button id="adminBtn" class="btn btn-ghost" hidden>Guests</button>
-        <button id="logoutBtn" class="btn btn-ghost">Sign out</button>
-      </div>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>#LoveWins. The Aftermath</title>
+    <meta name="theme-color" content="#7b2d42" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- Link preview (WhatsApp / iMessage / etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://aftermath.mitio.tech/" />
+    <meta property="og:title" content="💍JM Family Wedding Memory Vault" />
+    <meta property="og:description" content="Wanna peek?" />
+    <meta property="og:image" content="https://aftermath.mitio.tech/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://aftermath.mitio.tech/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="JM Family Wedding" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="💍JM Family Wedding Memory Vault" />
+    <meta name="twitter:description" content="Wanna peek?" />
+    <meta name="twitter:image" content="https://aftermath.mitio.tech/og-image.jpg" />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="site-header">
+        <div class="header-text">
+          <h1>
+            #LoveWins. <span class="nowrap"><em>The Aftermath</em> <span class="heart">♥</span></span>
+          </h1>
+          <p id="welcome" class="header-sub"></p>
+        </div>
+        <div class="header-actions">
+          <button id="uploadBtn" class="btn btn-bx">↑ Upload</button>
+          <button id="noteBtn" class="btn btn-ghost">✍ Leave a note</button>
+          <button id="adminBtn" class="btn btn-ghost" hidden>Guests</button>
+          <button id="logoutBtn" class="btn btn-ghost">Sign out</button>
+        </div>
+      </header>
 
-    <div class="toolbar">
-      <div class="seg" id="typeSeg" role="group" aria-label="Media type">
-        <button data-type="" class="active">All</button>
-        <button data-type="photo">Photos</button>
-        <button data-type="video">Videos</button>
+      <div class="toolbar">
+        <div class="seg" id="typeSeg" role="group" aria-label="Media type">
+          <button data-type="" class="active">All</button>
+          <button data-type="photo">Photos</button>
+          <button data-type="video">Videos</button>
+        </div>
+        <select id="uploaderSel" aria-label="Filter by uploader">
+          <option value="">Everyone</option>
+        </select>
+        <select id="sortSel" aria-label="Sort order">
+          <option value="taken-desc">Newest first</option>
+          <option value="taken-asc">Oldest first</option>
+          <option value="uploaded-desc">Recently uploaded</option>
+          <option value="loved">Most loved ♥</option>
+          <option value="commented">Most talked about 💬</option>
+        </select>
+        <button id="clearFilters" class="btn-tool" hidden>Clear filters</button>
+        <button id="selectBtn" class="btn-tool">Select</button>
+        <button id="downloadAllBtn" class="btn-tool">Download all</button>
+        <span id="countLabel" class="count-label"></span>
       </div>
-      <select id="uploaderSel" aria-label="Filter by uploader">
-        <option value="">Everyone</option>
-      </select>
-      <select id="sortSel" aria-label="Sort order">
-        <option value="taken-desc">Newest first</option>
-        <option value="taken-asc">Oldest first</option>
-        <option value="uploaded-desc">Recently uploaded</option>
-        <option value="loved">Most loved ♥</option>
-        <option value="commented">Most talked about 💬</option>
-      </select>
-      <button id="clearFilters" class="btn-tool" hidden>Clear filters</button>
-      <button id="selectBtn" class="btn-tool">Select</button>
-      <button id="downloadAllBtn" class="btn-tool">Download all</button>
-      <span id="countLabel" class="count-label"></span>
+
+      <div class="select-bar" id="selectBar" hidden>
+        <span id="selCount">0 selected</span>
+        <button id="selAllBtn" class="btn-tool">Select loaded</button>
+        <button id="selDownloadBtn" class="btn btn-bx">Download</button>
+        <button id="selDeleteBtn" class="btn-tool btn-danger" hidden>Delete</button>
+        <button id="selCancelBtn" class="btn-tool">Cancel</button>
+      </div>
+
+      <div id="uploadHint" class="upload-hint" hidden>
+        <span>📸 Hit <strong>Upload</strong> to share your memories.</span>
+        <button id="hintDismiss" class="hint-dismiss" aria-label="Dismiss">✕</button>
+      </div>
+
+      <button id="newBanner" class="new-banner" hidden></button>
+
+      <main id="gallery" class="gallery">
+        <p class="gallery-empty" id="galleryEmpty">Loading…</p>
+      </main>
+      <div id="sentinel"></div>
     </div>
 
-    <div class="select-bar" id="selectBar" hidden>
-      <span id="selCount">0 selected</span>
-      <button id="selAllBtn" class="btn-tool">Select loaded</button>
-      <button id="selDownloadBtn" class="btn btn-bx">Download</button>
-      <button id="selDeleteBtn" class="btn-tool btn-danger" hidden>Delete</button>
-      <button id="selCancelBtn" class="btn-tool">Cancel</button>
+    <aside id="uploadTray" class="upload-tray" hidden></aside>
+    <div class="drop-overlay">
+      <div class="drop-overlay-inner">Drop photos &amp; videos to upload&nbsp;♥</div>
     </div>
 
-    <div id="uploadHint" class="upload-hint" hidden>
-      <span>📸 Hit <strong>Upload</strong> to share your memories.</span>
-      <button id="hintDismiss" class="hint-dismiss" aria-label="Dismiss">✕</button>
-    </div>
-
-    <button id="newBanner" class="new-banner" hidden></button>
-
-    <main id="gallery" class="gallery">
-      <p class="gallery-empty" id="galleryEmpty">Loading…</p>
-    </main>
-    <div id="sentinel"></div>
-  </div>
-
-  <aside id="uploadTray" class="upload-tray" hidden></aside>
-  <div class="drop-overlay"><div class="drop-overlay-inner">Drop photos &amp; videos to upload&nbsp;♥</div></div>
-
-  <script type="module" src="/src/main.js"></script>
-</body>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

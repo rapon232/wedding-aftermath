@@ -32,7 +32,9 @@ if (prev) {
   const dropFiles = prev.originalFiles - now.originalFiles;
   const dropBytes = prev.originalBytes - now.originalBytes;
   if (dropFiles > Math.max(5, prev.originalFiles * 0.02)) {
-    console.error(`⚠ ALERT: original files dropped by ${dropFiles} (${prev.originalFiles} → ${now.originalFiles})`);
+    console.error(
+      `⚠ ALERT: original files dropped by ${dropFiles} (${prev.originalFiles} → ${now.originalFiles})`,
+    );
     alert = true;
   }
   if (dropBytes > Math.max(50 * 1024 * 1024, prev.originalBytes * 0.02)) {

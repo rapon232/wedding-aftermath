@@ -103,9 +103,13 @@ function build() {
 
   // Swipe navigation (touch) — disabled while an image is pinch/double-tap zoomed.
   let touchX = null;
-  overlay.addEventListener('touchstart', (e) => (touchX = e.touches.length === 1 ? e.touches[0].clientX : null), {
-    passive: true,
-  });
+  overlay.addEventListener(
+    'touchstart',
+    (e) => (touchX = e.touches.length === 1 ? e.touches[0].clientX : null),
+    {
+      passive: true,
+    },
+  );
   overlay.addEventListener('touchend', (e) => {
     if (touchX === null || zoomed || commentsOpen) return;
     const dx = e.changedTouches[0].clientX - touchX;
@@ -119,8 +123,16 @@ let zoomed = false;
 const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
 function setupZoom(img) {
-  let scale = 1, tx = 0, ty = 0, startDist = 0, startScale = 1, lastTap = 0;
-  let panning = false, panX = 0, panY = 0, raf = 0;
+  let scale = 1,
+    tx = 0,
+    ty = 0,
+    startDist = 0,
+    startScale = 1,
+    lastTap = 0;
+  let panning = false,
+    panX = 0,
+    panY = 0,
+    raf = 0;
   // Batch transform writes to one per animation frame — writing on every
   // touchmove is what made pinch/pan jitter on phones.
   const paint = () => {
@@ -145,39 +157,47 @@ function setupZoom(img) {
     scale = 2.5;
     apply();
   };
-  img.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 2) {
-      smooth(false); // no transition mid-gesture
-      startDist = touchDist(e.touches);
-      startScale = scale;
-    } else if (e.touches.length === 1) {
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        scale > 1 ? reset() : zoomIn();
+  img.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length === 2) {
+        smooth(false); // no transition mid-gesture
+        startDist = touchDist(e.touches);
+        startScale = scale;
+      } else if (e.touches.length === 1) {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+          scale > 1 ? reset() : zoomIn();
+          e.preventDefault();
+        }
+        lastTap = now;
+        if (scale > 1) {
+          smooth(false);
+          panning = true;
+          panX = e.touches[0].clientX - tx;
+          panY = e.touches[0].clientY - ty;
+        }
+      }
+    },
+    { passive: false },
+  );
+  img.addEventListener(
+    'touchmove',
+    (e) => {
+      if (e.touches.length === 2) {
         e.preventDefault();
+        scale = Math.min(4, Math.max(1, startScale * (touchDist(e.touches) / startDist)));
+        if (scale === 1) tx = ty = 0;
+        apply();
+      } else if (panning && scale > 1) {
+        e.preventDefault();
+        tx = e.touches[0].clientX - panX;
+        ty = e.touches[0].clientY - panY;
+        apply();
       }
-      lastTap = now;
-      if (scale > 1) {
-        smooth(false);
-        panning = true;
-        panX = e.touches[0].clientX - tx;
-        panY = e.touches[0].clientY - ty;
-      }
-    }
-  }, { passive: false });
-  img.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      scale = Math.min(4, Math.max(1, startScale * (touchDist(e.touches) / startDist)));
-      if (scale === 1) tx = ty = 0;
-      apply();
-    } else if (panning && scale > 1) {
-      e.preventDefault();
-      tx = e.touches[0].clientX - panX;
-      ty = e.touches[0].clientY - panY;
-      apply();
-    }
-  }, { passive: false });
+    },
+    { passive: false },
+  );
   img.addEventListener('touchend', () => {
     panning = false;
     if (scale <= 1) reset();

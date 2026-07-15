@@ -78,11 +78,12 @@ downloadRouter.post(
       let name = m.filename;
       for (let i = 2; used.has(name); i++) {
         const dot = m.filename.lastIndexOf('.');
-        name = dot > 0 ? `${m.filename.slice(0, dot)} (${i})${m.filename.slice(dot)}` : `${m.filename} (${i})`;
+        name =
+          dot > 0 ? `${m.filename.slice(0, dot)} (${i})${m.filename.slice(dot)}` : `${m.filename} (${i})`;
       }
       used.add(name);
       zip.file(p, { name });
     }
     zip.finalize();
-  }
+  },
 );

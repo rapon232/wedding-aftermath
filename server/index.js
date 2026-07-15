@@ -24,12 +24,12 @@ requeueUnprocessed();
     console.warn(
       `⚠ Integrity sweep REFUSED: DB has 0 media rows but ${sweep.orphanOriginals.length} original file(s) exist. ` +
         `The database may be missing or the data volume mismounted — NOT touching any files. ` +
-        `Check DATA_DIR and restore db.sqlite from backup.`
+        `Check DATA_DIR and restore db.sqlite from backup.`,
     );
   } else if (sweep.missingOriginals.length || sweep.orphanOriginals.length) {
     console.log(
       `Integrity sweep: ${sweep.missingOriginals.length} row(s) missing originals (flagged failed), ` +
-        `${sweep.orphanOriginals.length} orphan original(s) quarantined to trash/.`
+        `${sweep.orphanOriginals.length} orphan original(s) quarantined to trash/.`,
     );
   }
 }

@@ -10,7 +10,10 @@ let guest;
 before(async () => {
   srv = await spawnServer();
   admin = await login(srv.base, srv.adminCode);
-  const g = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Fav Guest'] } });
+  const g = await req(srv.base, 'POST', '/api/admin/guests', {
+    cookie: admin,
+    json: { names: ['Fav Guest'] },
+  });
   guest = await login(srv.base, g.data[0].code);
 });
 after(() => srv?.stop());
@@ -44,7 +47,10 @@ test('favorite toggle updates count and faved flag', async () => {
 test('favorite is idempotent (double-favorite counts once)', async () => {
   const id = await seedPhoto(admin, 72);
   await req(srv.base, 'POST', `/api/media/${id}/favorite`, { cookie: guest, json: { faved: true } });
-  const r = await req(srv.base, 'POST', `/api/media/${id}/favorite`, { cookie: guest, json: { faved: true } });
+  const r = await req(srv.base, 'POST', `/api/media/${id}/favorite`, {
+    cookie: guest,
+    json: { faved: true },
+  });
   assert.equal(r.data.count, 1);
 });
 
@@ -58,7 +64,10 @@ test('"most loved" sort returns only favorited items, by count desc', async () =
   const ids = loved.data.items.map((i) => i.id);
   assert.ok(ids.includes(a) && ids.includes(b));
   assert.ok(ids.indexOf(a) < ids.indexOf(b), 'more-loved item should come first');
-  assert.ok(loved.data.items.every((i) => i.fav_count > 0), 'loved view excludes unfavorited');
+  assert.ok(
+    loved.data.items.every((i) => i.fav_count > 0),
+    'loved view excludes unfavorited',
+  );
 });
 
 test('new-since-last-visit counts others’ uploads after last seen', async () => {
@@ -76,9 +85,17 @@ test('new-since-last-visit counts others’ uploads after last seen', async () =
 });
 
 test('favorite on missing/bad id is handled', async () => {
-  assert.equal((await req(srv.base, 'POST', '/api/media/not-a-uuid/favorite', { cookie: guest, json: {} })).status, 400);
   assert.equal(
-    (await req(srv.base, 'POST', '/api/media/11111111-1111-1111-1111-111111111111/favorite', { cookie: guest, json: {} })).status,
-    404
+    (await req(srv.base, 'POST', '/api/media/not-a-uuid/favorite', { cookie: guest, json: {} })).status,
+    400,
+  );
+  assert.equal(
+    (
+      await req(srv.base, 'POST', '/api/media/11111111-1111-1111-1111-111111111111/favorite', {
+        cookie: guest,
+        json: {},
+      })
+    ).status,
+    404,
   );
 });

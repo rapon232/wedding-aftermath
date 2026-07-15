@@ -7,9 +7,16 @@ import { requireApi } from './auth.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONTENT_TYPE = {
-  mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-  webp: 'image/webp', gif: 'image/gif', heic: 'image/heic', heif: 'image/heif',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  m4v: 'video/x-m4v',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
 };
 const PAGE_DEFAULT = 60;
 const PAGE_MAX = 100;
@@ -63,7 +70,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
         `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
          WHERE ${listFilters.join(' AND ')}
          ORDER BY ${metric} DESC, m.taken_at DESC, m.id DESC
-         LIMIT ?`
+         LIMIT ?`,
       )
       .all(gid, ...listParams, PAGE_MAX);
     rows = rows.filter((r) => r[metric] > 0); // nothing yet → empty, not a random dump
@@ -76,7 +83,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
         listFilters.push(
           dir === 'DESC'
             ? `(m.${sortCol} < ? OR (m.${sortCol} = ? AND m.id < ?))`
-            : `(m.${sortCol} > ? OR (m.${sortCol} = ? AND m.id > ?))`
+            : `(m.${sortCol} > ? OR (m.${sortCol} = ? AND m.id > ?))`,
         );
         listParams.push(v, v, id);
       } catch {
@@ -88,7 +95,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
         `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
          WHERE ${listFilters.join(' AND ')}
          ORDER BY m.${sortCol} ${dir}, m.id ${dir}
-         LIMIT ?`
+         LIMIT ?`,
       )
       .all(gid, ...listParams, limit + 1);
     if (rows.length > limit) {
@@ -105,7 +112,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
       .prepare(
         `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
          WHERE ${base.join(' AND ')} AND m.pinned_at IS NOT NULL
-         ORDER BY m.pinned_at ASC, m.id ASC`
+         ORDER BY m.pinned_at ASC, m.id ASC`,
       )
       .all(gid, ...baseParams);
     const totals = db
@@ -121,7 +128,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
       ? db
           .prepare(
             `SELECT COUNT(*) AS n FROM media
-             WHERE status = 'ready' AND uploaded_at > ? AND uploader_id != ?`
+             WHERE status = 'ready' AND uploaded_at > ? AND uploader_id != ?`,
           )
           .get(seen, gid).n
       : 0;
@@ -136,9 +143,9 @@ galleryRouter.get('/api/uploaders', requireApi, (_req, res) => {
         `SELECT g.id, g.name, COUNT(*) AS count
          FROM media m JOIN guests g ON g.id = m.uploader_id
          WHERE m.status = 'ready'
-         GROUP BY g.id ORDER BY g.name COLLATE NOCASE`
+         GROUP BY g.id ORDER BY g.name COLLATE NOCASE`,
       )
-      .all()
+      .all(),
   );
 });
 
@@ -153,9 +160,15 @@ function sendDerived(res, dir, id, ext) {
   res.sendFile(p);
 }
 
-galleryRouter.get('/media/thumb/:id', requireApi, (req, res) => sendDerived(res, dirs.thumbs, req.params.id, 'webp'));
-galleryRouter.get('/media/preview/:id', requireApi, (req, res) => sendDerived(res, dirs.previews, req.params.id, 'webp'));
-galleryRouter.get('/media/poster/:id', requireApi, (req, res) => sendDerived(res, dirs.posters, req.params.id, 'jpg'));
+galleryRouter.get('/media/thumb/:id', requireApi, (req, res) =>
+  sendDerived(res, dirs.thumbs, req.params.id, 'webp'),
+);
+galleryRouter.get('/media/preview/:id', requireApi, (req, res) =>
+  sendDerived(res, dirs.previews, req.params.id, 'webp'),
+);
+galleryRouter.get('/media/poster/:id', requireApi, (req, res) =>
+  sendDerived(res, dirs.posters, req.params.id, 'jpg'),
+);
 
 // Originals: inline for playback/lightbox, attachment with ?download=1.
 // res.sendFile handles HTTP Range requests (video seeking) natively.

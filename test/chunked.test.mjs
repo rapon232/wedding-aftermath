@@ -49,7 +49,10 @@ test('chunks arriving out of order reassemble to the exact original bytes', asyn
 });
 
 test('a chunk past the declared size is rejected', async () => {
-  const init = await req(srv.base, 'POST', '/api/upload/init', { cookie: admin, json: { name: 'x.jpg', size: 20 } });
+  const init = await req(srv.base, 'POST', '/api/upload/init', {
+    cookie: admin,
+    json: { name: 'x.jpg', size: 20 },
+  });
   const { uploadId } = init.data;
   // index 5 → offset 80, well past size 20
   const r = await fetch(`${srv.base}/api/upload/${uploadId}/chunk?index=5`, {

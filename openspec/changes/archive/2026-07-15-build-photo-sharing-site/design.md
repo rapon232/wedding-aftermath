@@ -7,6 +7,7 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Deploy ASAP: one container, one compose file, one tunnel hostname.
 - Guests upload originals (photos + videos) easily from phone or desktop.
 - Pretty, fast gallery on mobile and desktop; sort/filter by date, uploader, type.
@@ -15,6 +16,7 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 - All media and metadata live on the NAS filesystem (easy to back up: one folder).
 
 **Non-Goals:**
+
 - Not a product: no multi-event support, no email flows, no password reset, no rate limiting beyond basics.
 - No transcoding pipeline (videos are served as uploaded; posters only).
 - No face detection, albums, comments, or reactions (can come later).
@@ -29,9 +31,10 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 **Why:** Matches the proven wedding.mitio.tech pattern and the owner's familiarity; a single process/container with no DB server is the simplest thing that can work. SQLite is ideal at this scale (65 users, thousands of items) and lives in the same backed-up data folder. Vanilla JS keeps build tooling to Vite only.
 
 **Alternatives considered:**
-- *Off-the-shelf (Immich/PhotoPrism/Chevereto):* fastest to run but can't deliver the custom wedding-themed UI, per-guest codes, or the curated simplicity wanted; heavier ops (Immich needs Postgres + Redis + ML containers).
-- *Next.js/React:* more capable but more moving parts and build complexity than needed for one gallery page + one login page.
-- *JSON file persistence (like seating site):* too fragile for concurrent uploads and thousands of rows; SQLite is the same ops footprint with real transactions.
+
+- _Off-the-shelf (Immich/PhotoPrism/Chevereto):_ fastest to run but can't deliver the custom wedding-themed UI, per-guest codes, or the curated simplicity wanted; heavier ops (Immich needs Postgres + Redis + ML containers).
+- _Next.js/React:_ more capable but more moving parts and build complexity than needed for one gallery page + one login page.
+- _JSON file persistence (like seating site):_ too fragile for concurrent uploads and thousands of rows; SQLite is the same ops footprint with real transactions.
 
 ### D2: Auth — per-guest access codes + signed session cookie
 
@@ -40,9 +43,10 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 **Why:** No passwords to manage or reset for 65 non-technical guests; one code fits on a WhatsApp message. Uploader identity ("who uploaded what") falls out of the session. Cloudflare tunnel already gives TLS.
 
 **Alternatives considered:**
-- *Shared single password:* simplest but loses per-uploader attribution (a hard requirement).
-- *Username+password per guest:* double the friction and support burden for zero gain.
-- *Cloudflare Access:* offloads auth but requires managing 65 emails and breaks in-app identity.
+
+- _Shared single password:_ simplest but loses per-uploader attribution (a hard requirement).
+- _Username+password per guest:_ double the friction and support burden for zero gain.
+- _Cloudflare Access:_ offloads auth but requires managing 65 emails and breaks in-app identity.
 
 ### D3: Media pipeline — originals untouched; derived thumbnails + previews
 
@@ -53,8 +57,9 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 **Timezone handling:** the server runs in Sofia but the wedding was in Sicily. Photo EXIF datetimes are timezone-naive wall-clock; video `creation_time` is UTC. All `taken_at` values are normalized to true UTC at processing: EXIF times are interpreted using the camera-recorded `OffsetTimeOriginal` when present, otherwise assumed to be in `EVENT_TZ` (env, default `Europe/Rome`, DST-correct). The UI displays all times in `EVENT_TZ` so every guest sees consistent event-local times.
 
 **Alternatives considered:**
-- *On-the-fly resizing:* simpler storage but repeated CPU cost on a NAS-class CPU; pre-generating at upload is once per file.
-- *Client-side resize before upload:* loses the original, which defeats the purpose.
+
+- _On-the-fly resizing:_ simpler storage but repeated CPU cost on a NAS-class CPU; pre-generating at upload is once per file.
+- _Client-side resize before upload:_ loses the original, which defeats the purpose.
 
 ### D4: Upload UX — chunk-free multipart with per-file progress, background-safe
 
@@ -63,7 +68,8 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 **Why:** True resumable/chunked upload protocols (tus) are overkill; a queued retry-per-file model covers flaky phone connections with 10% of the complexity. Hash dedupe makes retries and double-taps idempotent.
 
 **Alternatives considered:**
-- *tus/resumable chunks:* better for >2 GB files on bad networks, but adds a protocol dependency; can be added later without schema changes.
+
+- _tus/resumable chunks:_ better for >2 GB files on bad networks, but adds a protocol dependency; can be added later without schema changes.
 
 ### D5: Bulk download — streaming zip
 
@@ -98,6 +104,7 @@ Private photo/video exchange site for ~65 wedding guests at `aftermath.mitio.tec
 ## Migration Plan
 
 Greenfield — no migration. Launch steps:
+
 1. Build image, run locally with a temp data dir, smoke-test upload/browse/download on phone + desktop.
 2. Copy compose file to NAS, create data share, `docker compose up -d`.
 3. Add `aftermath.mitio.tech` ingress to the existing `cloudflared` config, restart tunnel.
@@ -106,5 +113,5 @@ Greenfield — no migration. Launch steps:
 ## Open Questions
 
 - Cloudflare 100 MB body limit: confirm plan limits and whether chunked upload endpoint is needed at launch (likely yes for videos).
-- Should guests be able to delete their *own* uploads? (Cheap to add; assumed yes, admin can delete anything.)
+- Should guests be able to delete their _own_ uploads? (Cheap to add; assumed yes, admin can delete anything.)
 - Max upload size cap per file (default proposal: 2 GB).

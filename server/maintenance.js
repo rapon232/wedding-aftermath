@@ -64,7 +64,11 @@ export function integritySweep({ fix = false } = {}) {
       fs.renameSync(src, path.join(dirs.trash, f));
     }
     // Derived files are regenerable → safe to delete when they have no row.
-    for (const [dir, ext] of [[dirs.thumbs, 'webp'], [dirs.previews, 'webp'], [dirs.posters, 'jpg']]) {
+    for (const [dir, ext] of [
+      [dirs.thumbs, 'webp'],
+      [dirs.previews, 'webp'],
+      [dirs.posters, 'jpg'],
+    ]) {
       for (const f of fs.readdirSync(dir)) {
         if (!validIds.has(path.basename(f, `.${ext}`))) fs.rmSync(path.join(dir, f), { force: true });
       }
@@ -76,7 +80,7 @@ export function integritySweep({ fix = false } = {}) {
 
 /** Aggregate stats for the backup-verification job. */
 export function dataStats() {
-  const counts = db.prepare("SELECT status, COUNT(*) AS n FROM media GROUP BY status").all();
+  const counts = db.prepare('SELECT status, COUNT(*) AS n FROM media GROUP BY status').all();
   const byStatus = counts.reduce((a, r) => ({ ...a, [r.status]: r.n }), {});
   let originalBytes = 0;
   for (const f of fs.readdirSync(dirs.originals)) {

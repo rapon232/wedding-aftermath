@@ -10,7 +10,10 @@ const MAX_LEN = 1000;
 // so no HTML escaping is needed here.
 function cleanBody(raw) {
   // Strip control chars but keep newlines/tabs so multi-line notes survive.
-  return String(raw || '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim().slice(0, MAX_LEN);
+  return String(raw || '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .trim()
+    .slice(0, MAX_LEN);
 }
 
 // Simple per-guest write throttle shared by comments + notes.
@@ -34,7 +37,7 @@ socialRouter.get('/api/media/:id/comments', requireApi, (req, res) => {
     .prepare(
       `SELECT c.id, c.body, c.created_at, c.guest_id, g.name AS guest_name
        FROM media_comments c JOIN guests g ON g.id = c.guest_id
-       WHERE c.media_id = ? ORDER BY c.created_at ASC`
+       WHERE c.media_id = ? ORDER BY c.created_at ASC`,
     )
     .all(req.params.id);
   res.json(rows);
@@ -53,7 +56,7 @@ socialRouter.post('/api/media/:id/comments', requireApi, writeGuard, (req, res) 
   const row = db
     .prepare(
       `SELECT c.id, c.body, c.created_at, c.guest_id, g.name AS guest_name
-       FROM media_comments c JOIN guests g ON g.id = c.guest_id WHERE c.id = ?`
+       FROM media_comments c JOIN guests g ON g.id = c.guest_id WHERE c.id = ?`,
     )
     .get(info.lastInsertRowid);
   res.status(201).json(row);
@@ -74,9 +77,9 @@ socialRouter.get('/api/notes', requireAdmin, (_req, res) => {
     db
       .prepare(
         `SELECT n.id, n.body, n.created_at, n.guest_id, g.name AS guest_name
-         FROM notes n JOIN guests g ON g.id = n.guest_id ORDER BY n.created_at DESC`
+         FROM notes n JOIN guests g ON g.id = n.guest_id ORDER BY n.created_at DESC`,
       )
-      .all()
+      .all(),
   );
 });
 
@@ -87,7 +90,7 @@ socialRouter.post('/api/notes', requireApi, writeGuard, (req, res) => {
   const row = db
     .prepare(
       `SELECT n.id, n.body, n.created_at, n.guest_id, g.name AS guest_name
-       FROM notes n JOIN guests g ON g.id = n.guest_id WHERE n.id = ?`
+       FROM notes n JOIN guests g ON g.id = n.guest_id WHERE n.id = ?`,
     )
     .get(info.lastInsertRowid);
   res.status(201).json(row);

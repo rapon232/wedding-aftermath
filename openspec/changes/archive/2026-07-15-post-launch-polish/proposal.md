@@ -13,7 +13,7 @@ The site is **live** with real guests who have already logged in and uploaded ph
 - **Comments panel is smoother.** Comments SHALL load only when the panel is opened (not re-fetched on every swipe), and the panel's close button SHALL be round to match the design.
 - **Videos are visibly videos, with correct duration.** The thumbnail SHALL show a duration badge, and the underlying video metadata (duration + capture date) SHALL be extracted robustly from the container **and** stream.
 - **Videos show their true capture date.** Video `taken_at` SHALL be read from the video's creation metadata (with timezone handling), instead of silently falling back to upload time. Videos already uploaded SHALL be corrected by a one-time, non-destructive backfill.
-- **Add a guest by name *and* email by hand.** The admin guest panel SHALL allow entering an email alongside a name when creating a single guest, so the owner can grant access and send an invite without going through CSV import.
+- **Add a guest by name _and_ email by hand.** The admin guest panel SHALL allow entering an email alongside a name when creating a single guest, so the owner can grant access and send an invite without going through CSV import.
 
 Explicitly **out of scope**: the favorite-heart color semantics. The heart is intentionally personal (pink = you favorited) and stays as-is.
 

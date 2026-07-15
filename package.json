@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "start": "node server/index.js",
     "test": "node --test \"test/**/*.test.mjs\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "check-backup": "node scripts/check-backup.mjs",
     "integrity-sweep": "node scripts/integrity-sweep.mjs",
     "export-all": "node scripts/export-all.mjs",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
+    "prettier": "^3.9.5",
     "puppeteer-core": "^25.3.0",
     "vite": "^6.0.0"
   }

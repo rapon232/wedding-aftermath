@@ -22,10 +22,17 @@ export function initGallery(user) {
   me = user;
   const tz = me.eventTz || 'Europe/Rome';
   fmt = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone: tz,
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   });
   fmtDay = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz, weekday: 'long', day: 'numeric', month: 'long',
+    timeZone: tz,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   });
 
   readStateFromUrl();
@@ -52,7 +59,7 @@ export function initGallery(user) {
     (entries) => {
       if (entries[0].isIntersecting && nextCursor && !loading) loadPage();
     },
-    { rootMargin: '600px' }
+    { rootMargin: '600px' },
   ).observe(sentinel);
 
   window.addEventListener('hashchange', maybeOpenFromHash);
@@ -228,7 +235,12 @@ function bindToolbar() {
 async function deleteSelected() {
   if (!selected.size) return;
   const ids = [...selected];
-  if (!confirm(`Delete ${ids.length} selected item${ids.length === 1 ? '' : 's'}? This removes ${ids.length === 1 ? 'it' : 'them'} for everyone.`)) return;
+  if (
+    !confirm(
+      `Delete ${ids.length} selected item${ids.length === 1 ? '' : 's'}? This removes ${ids.length === 1 ? 'it' : 'them'} for everyone.`,
+    )
+  )
+    return;
   // Delete with light concurrency; remove each from the grid as it goes.
   let i = 0;
   async function worker() {
@@ -337,7 +349,7 @@ async function loadPage(first = false) {
       setEmpty(
         state.sort === 'loved'
           ? 'No favorites yet — tap the ♥ on photos you love.'
-          : 'No memories here yet — be the first to share the day ♥'
+          : 'No memories here yet — be the first to share the day ♥',
       );
     } else {
       setEmpty(null);
@@ -528,7 +540,9 @@ function removeItem(id) {
     setEmpty('No memories here yet — be the first to share the day ♥');
   } else {
     pruneHeaders(); // drop any day/section header whose items are all gone
-    grid().querySelectorAll('.cell').forEach((el, idx) => (el.dataset.index = idx));
+    grid()
+      .querySelectorAll('.cell')
+      .forEach((el, idx) => (el.dataset.index = idx));
   }
   scheduleUploaderRefresh(); // an uploader who lost their last item leaves the filter
 }

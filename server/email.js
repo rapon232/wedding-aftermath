@@ -2,7 +2,7 @@
 import { config } from './config.js';
 
 const esc = (s) =>
-  String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 export const emailConfigured = () => !!config.resendApiKey;
 
@@ -16,10 +16,16 @@ export function inviteHtml({ name, code }) {
   // ?v bumps whenever the card art changes — forces email clients (esp. Gmail's
   // image proxy) to fetch the new image instead of serving a cached old one.
   const cardUrl = `${config.publicUrl}/card-email.png?v=3`;
-  const cream = '#f7f3ee', card = '#ffffff', bordeaux = '#7b2d42', dark = '#4e1928', text = '#251a16', muted = '#7e6c63';
+  const cream = '#f7f3ee',
+    card = '#ffffff',
+    bordeaux = '#7b2d42',
+    dark = '#4e1928',
+    text = '#251a16',
+    muted = '#7e6c63';
   const serif = "'DM Serif Display', Georgia, 'Times New Roman', serif";
   const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  const p = (html) => `<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${text};font-family:${sans}">${html}</p>`;
+  const p = (html) =>
+    `<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${text};font-family:${sans}">${html}</p>`;
 
   return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff">
   <div style="display:none;max-height:0;overflow:hidden">Your #LovePortal access code: ${esc(code)}</div>

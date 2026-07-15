@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
     pull_policy: always
     ports:
-      - "${HOST_PORT:-3000}:3000"
+      - '${HOST_PORT:-3000}:3000'
     environment:
       PORT: 3000
       DATA_DIR: /data

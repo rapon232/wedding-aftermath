@@ -25,7 +25,7 @@ Implications:
 
 ### Why the backfill is the actual fix for what the user sees
 
-The already-uploaded videos have `taken_at = upload time` baked in. Re-processing won't touch `status='ready'` rows, so a one-off backfill that **re-probes the originals** and updates `taken_at` is what corrects the live gallery. Because it re-runs the corrected extraction, it fixes those videos regardless of *why* they were wrong originally.
+The already-uploaded videos have `taken_at = upload time` baked in. Re-processing won't touch `status='ready'` rows, so a one-off backfill that **re-probes the originals** and updates `taken_at` is what corrects the live gallery. Because it re-runs the corrected extraction, it fixes those videos regardless of _why_ they were wrong originally.
 
 ### Backfill safety (file integrity)
 
@@ -38,11 +38,11 @@ NEVER          → move / rename / re-encode / delete originals, posters, thumbs
 resort         → automatic; gallery already ORDER BYs taken_at, no file movement
 ```
 
-A quick production diagnostic settles whether the *parser* also needs deploying vs. only the backfill: in the container, run the probe on one uploaded original and `SELECT status, duration_s, taken_at, uploaded_at FROM media WHERE type='video'`. Either way the parser hardening + backfill together are correct.
+A quick production diagnostic settles whether the _parser_ also needs deploying vs. only the backfill: in the container, run the probe on one uploaded original and `SELECT status, duration_s, taken_at, uploaded_at FROM media WHERE type='video'`. Either way the parser hardening + backfill together are correct.
 
 ## Lightbox navigation bounds
 
-Root cause: `lightbox.js` shows the next arrow when `opts.loadMore` merely *exists* (always a function → always truthy). Replace with a `hasMore()` predicate returning `!!nextCursor`. Prev shows for `idx > 0`; next shows for `idx < list.length-1 || hasMore()`. Fixes the dead end-arrow in filtered and unfiltered views alike.
+Root cause: `lightbox.js` shows the next arrow when `opts.loadMore` merely _exists_ (always a function → always truthy). Replace with a `hasMore()` predicate returning `!!nextCursor`. Prev shows for `idx > 0`; next shows for `idx < list.length-1 || hasMore()`. Fixes the dead end-arrow in filtered and unfiltered views alike.
 
 ## Smooth zoom
 

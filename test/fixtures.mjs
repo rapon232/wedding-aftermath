@@ -11,7 +11,9 @@ export function jpeg(seed = 0) {
 }
 
 export function png(seed = 0) {
-  return sharp({ create: { width: 200, height: 200, channels: 4, background: { r: seed % 256, g: 10, b: 10, alpha: 1 } } })
+  return sharp({
+    create: { width: 200, height: 200, channels: 4, background: { r: seed % 256, g: 10, b: 10, alpha: 1 } },
+  })
     .png()
     .toBuffer();
 }

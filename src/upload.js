@@ -264,7 +264,7 @@ function render() {
   if (!trayEl) return;
   document.body.classList.toggle(
     'uploading',
-    items.some((i) => ['queued', 'uploading', 'processing'].includes(i.status))
+    items.some((i) => ['queued', 'uploading', 'processing'].includes(i.status)),
   );
   const visible = items.length > 0;
   trayEl.hidden = !visible;

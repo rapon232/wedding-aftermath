@@ -10,7 +10,7 @@ const r = integritySweep({ fix });
 if (r.refused) {
   console.error(
     `⚠ REFUSED: 0 media rows but ${r.orphanOriginals.length} original file(s) present. ` +
-      `DB likely missing or volume mismounted — no files touched. Verify DATA_DIR / restore db.sqlite.`
+      `DB likely missing or volume mismounted — no files touched. Verify DATA_DIR / restore db.sqlite.`,
   );
   process.exit(3);
 }

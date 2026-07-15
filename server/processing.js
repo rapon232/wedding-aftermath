@@ -12,9 +12,9 @@ const execFileP = promisify(execFile);
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
 
-const THUMB_W = 480;    // grid thumbnails
+const THUMB_W = 480; // grid thumbnails
 const PREVIEW_MAX = 1600; // lightbox previews
-const CONCURRENCY = 2;  // NAS-friendly: never more than 2 heavy jobs at once
+const CONCURRENCY = 2; // NAS-friendly: never more than 2 heavy jobs at once
 
 const queue = [];
 let active = 0;
@@ -52,7 +52,7 @@ async function processMedia(id) {
     const info = m.type === 'photo' ? await processPhoto(m, original) : await processVideo(m, original);
     db.prepare(
       `UPDATE media SET status = 'ready', width = ?, height = ?, duration_s = ?,
-       taken_at = COALESCE(?, taken_at) WHERE id = ?`
+       taken_at = COALESCE(?, taken_at) WHERE id = ?`,
     ).run(info.width ?? null, info.height ?? null, info.duration ?? null, info.takenAt ?? null, id);
     broadcast({ type: 'ready', id }); // push to open galleries so it appears live
   } catch (err) {
@@ -147,14 +147,26 @@ function wallClockToUtc(y, mo, d, h, mi, s, tz) {
   for (let i = 0; i < 2; i++) {
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat('en-US', {
-        timeZone: tz, hourCycle: 'h23',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZone: tz,
+        hourCycle: 'h23',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       })
         .formatToParts(new Date(utc))
-        .map((p) => [p.type, p.value])
+        .map((p) => [p.type, p.value]),
     );
-    const rendered = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    const rendered = Date.UTC(
+      +parts.year,
+      +parts.month - 1,
+      +parts.day,
+      +parts.hour,
+      +parts.minute,
+      +parts.second,
+    );
     utc -= rendered - Date.UTC(y, mo - 1, d, h, mi, s);
   }
   return new Date(utc).toISOString();
@@ -190,9 +202,13 @@ export async function probeVideoMeta(original, label = original) {
     // one -show_entries, returning tags but no duration. -show_format/-show_streams
     // reliably returns both.
     const { stdout } = await execFileP(FFPROBE, [
-      '-v', 'error',
-      '-show_format', '-show_streams',
-      '-of', 'json', original,
+      '-v',
+      'error',
+      '-show_format',
+      '-show_streams',
+      '-of',
+      'json',
+      original,
     ]);
     const probe = JSON.parse(stdout);
     const fmt = probe?.format || {};
@@ -203,7 +219,10 @@ export async function probeVideoMeta(original, label = original) {
     if (!(Number.isFinite(dur) && dur > 0)) {
       for (const st of streams) {
         const sd = Number(st?.duration);
-        if (Number.isFinite(sd) && sd > 0) { dur = sd; break; }
+        if (Number.isFinite(sd) && sd > 0) {
+          dur = sd;
+          break;
+        }
       }
     }
     if (Number.isFinite(dur) && dur > 0) duration = dur;
@@ -233,8 +252,16 @@ async function processVideo(m, original) {
   // Poster frame at 1s in; very short clips fall back to the first frame
   const grab = (seek) =>
     execFileP(FFMPEG, [
-      '-y', '-ss', String(seek), '-i', original,
-      '-frames:v', '1', '-vf', "scale='min(1280,iw)':-2", poster,
+      '-y',
+      '-ss',
+      String(seek),
+      '-i',
+      original,
+      '-frames:v',
+      '1',
+      '-vf',
+      "scale='min(1280,iw)':-2",
+      poster,
     ]);
   try {
     await grab(1);

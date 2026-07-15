@@ -11,7 +11,10 @@ let guestId;
 before(async () => {
   srv = await spawnServer();
   admin = await login(srv.base, srv.adminCode);
-  const g = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Commenter'] } });
+  const g = await req(srv.base, 'POST', '/api/admin/guests', {
+    cookie: admin,
+    json: { names: ['Commenter'] },
+  });
   guestId = g.data[0].id;
   guest = await login(srv.base, g.data[0].code);
 });
@@ -22,7 +25,10 @@ test('comments: add, list, and delete permissions', async () => {
   await waitReady(srv.base, admin, up.data.id);
   const id = up.data.id;
 
-  const add = await req(srv.base, 'POST', `/api/media/${id}/comments`, { cookie: guest, json: { body: 'gorgeous! ♥' } });
+  const add = await req(srv.base, 'POST', `/api/media/${id}/comments`, {
+    cookie: guest,
+    json: { body: 'gorgeous! ♥' },
+  });
   assert.equal(add.status, 201);
   assert.equal(add.data.body, 'gorgeous! ♥');
   assert.equal(add.data.guest_name, 'Commenter');
@@ -40,16 +46,36 @@ test('comments: add, list, and delete permissions', async () => {
 test('comments: empty body rejected; bad/missing media handled', async () => {
   const up = await uploadFile(srv.base, admin, await jpeg(201), 'c2.jpg', 'image/jpeg');
   await waitReady(srv.base, admin, up.data.id);
-  assert.equal((await req(srv.base, 'POST', `/api/media/${up.data.id}/comments`, { cookie: guest, json: { body: '   ' } })).status, 400);
-  assert.equal((await req(srv.base, 'POST', '/api/media/not-a-uuid/comments', { cookie: guest, json: { body: 'x' } })).status, 400);
   assert.equal(
-    (await req(srv.base, 'POST', '/api/media/11111111-1111-1111-1111-111111111111/comments', { cookie: guest, json: { body: 'x' } })).status,
-    404
+    (
+      await req(srv.base, 'POST', `/api/media/${up.data.id}/comments`, {
+        cookie: guest,
+        json: { body: '   ' },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await req(srv.base, 'POST', '/api/media/not-a-uuid/comments', { cookie: guest, json: { body: 'x' } }))
+      .status,
+    400,
+  );
+  assert.equal(
+    (
+      await req(srv.base, 'POST', '/api/media/11111111-1111-1111-1111-111111111111/comments', {
+        cookie: guest,
+        json: { body: 'x' },
+      })
+    ).status,
+    404,
   );
 });
 
 test('comments require auth', async () => {
-  assert.equal((await req(srv.base, 'GET', '/api/media/11111111-1111-1111-1111-111111111111/comments')).status, 401);
+  assert.equal(
+    (await req(srv.base, 'GET', '/api/media/11111111-1111-1111-1111-111111111111/comments')).status,
+    401,
+  );
 });
 
 test('notes: anyone leaves one, but only admins can read them', async () => {
@@ -72,7 +98,10 @@ test('notes: anyone leaves one, but only admins can read them', async () => {
 });
 
 test('notes: empty rejected, auth required', async () => {
-  assert.equal((await req(srv.base, 'POST', '/api/notes', { cookie: guest, json: { body: '' } })).status, 400);
+  assert.equal(
+    (await req(srv.base, 'POST', '/api/notes', { cookie: guest, json: { body: '' } })).status,
+    400,
+  );
   assert.equal((await req(srv.base, 'POST', '/api/notes', { json: { body: 'x' } })).status, 401);
   assert.equal((await req(srv.base, 'GET', '/api/notes')).status, 401);
 });

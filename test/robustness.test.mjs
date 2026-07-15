@@ -30,7 +30,9 @@ test('health: public probe is bare ok; admin gets full diagnostic', async () => 
 
 test('derived renditions carry no EXIF/GPS metadata', async () => {
   // Upload a JPEG that DOES have GPS EXIF, then assert the thumbnail is clean.
-  const withGps = await sharp({ create: { width: 800, height: 600, channels: 3, background: { r: 1, g: 2, b: 3 } } })
+  const withGps = await sharp({
+    create: { width: 800, height: 600, channels: 3, background: { r: 1, g: 2, b: 3 } },
+  })
     .jpeg()
     .withExif({ IFD0: { Make: 'TestCam' }, GPS: { GPSLatitudeRef: 'N', GPSLongitudeRef: 'E' } })
     .toBuffer();
@@ -73,7 +75,7 @@ test('integrity sweep detects missing originals and orphan files, and --fix repa
   db.prepare(
     `INSERT INTO media (id, uploader_id, filename, ext, type, size, sha256, taken_at, status)
      VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, 'x.jpg', 'jpg', 'photo', 1, 'h1',
-             '2026-06-20T00:00:00Z', 'ready')`
+             '2026-06-20T00:00:00Z', 'ready')`,
   ).run();
   // Orphan file with no row, aged past the grace window so the sweep will act on it.
   const orphan = path.join(dirs.originals, 'orphan-file.jpg');
@@ -89,7 +91,10 @@ test('integrity sweep detects missing originals and orphan files, and --fix repa
   const fixed = integritySweep({ fix: true });
   // Orphan is QUARANTINED (moved to trash/), never deleted — recoverable.
   assert.ok(!fs.existsSync(orphan), 'orphan should leave originals/');
-  assert.ok(fs.existsSync(path.join(dirs.trash, 'orphan-file.jpg')), 'orphan should be quarantined to trash/');
+  assert.ok(
+    fs.existsSync(path.join(dirs.trash, 'orphan-file.jpg')),
+    'orphan should be quarantined to trash/',
+  );
   assert.equal(fixed.refused, false);
   const row = db.prepare("SELECT status FROM media WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'").get();
   assert.equal(row.status, 'failed');

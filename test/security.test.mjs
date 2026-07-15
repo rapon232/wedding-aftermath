@@ -13,7 +13,10 @@ let guestBId;
 before(async () => {
   srv = await spawnServer();
   admin = await login(srv.base, srv.adminCode);
-  const a = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Alice', 'Bob'] } });
+  const a = await req(srv.base, 'POST', '/api/admin/guests', {
+    cookie: admin,
+    json: { names: ['Alice', 'Bob'] },
+  });
   guestA = await login(srv.base, a.data[0].code);
   guestB = await login(srv.base, a.data[1].code);
   guestBId = a.data[1].id;
@@ -42,10 +45,10 @@ test('SQLi: classic payloads in login code never authenticate', async () => {
 
 test('SQLi: injection in listing filters does not error or leak', async () => {
   const probes = [
-    "/api/media?uploader=1 OR 1=1",
-    "/api/media?uploader=1; DROP TABLE media--",
+    '/api/media?uploader=1 OR 1=1',
+    '/api/media?uploader=1; DROP TABLE media--',
     "/api/media?type=photo' OR '1'='1",
-    "/api/media?sort=taken_at;DELETE FROM media",
+    '/api/media?sort=taken_at;DELETE FROM media',
   ];
   for (const p of probes) {
     const r = await req(srv.base, 'GET', encodeURI(p), { cookie: admin });
@@ -56,7 +59,9 @@ test('SQLi: injection in listing filters does not error or leak', async () => {
 });
 
 test('SQLi: malformed/injected cursor is rejected, not executed', async () => {
-  const bad = Buffer.from(JSON.stringify({ v: "' OR 1=1", id: "'; DROP TABLE media--" })).toString('base64url');
+  const bad = Buffer.from(JSON.stringify({ v: "' OR 1=1", id: "'; DROP TABLE media--" })).toString(
+    'base64url',
+  );
   const r = await req(srv.base, 'GET', `/api/media?cursor=${bad}`, { cookie: admin });
   // parametrized — treated as literal values, returns a normal (likely empty) page
   assert.equal(r.status, 200);
@@ -163,7 +168,10 @@ test('abuse: oversized JSON body rejected (413)', async () => {
 });
 
 test('abuse: chunked upload rejects more data than declared', async () => {
-  const init = await req(srv.base, 'POST', '/api/upload/init', { cookie: admin, json: { name: 'big.mp4', size: 10 } });
+  const init = await req(srv.base, 'POST', '/api/upload/init', {
+    cookie: admin,
+    json: { name: 'big.mp4', size: 10 },
+  });
   assert.equal(init.status, 200);
   const uid = init.data.uploadId;
   const r = await fetch(`${srv.base}/api/upload/${uid}/chunk?index=0`, {
@@ -175,7 +183,10 @@ test('abuse: chunked upload rejects more data than declared', async () => {
 });
 
 test('abuse: chunked upload session is scoped to its owner', async () => {
-  const init = await req(srv.base, 'POST', '/api/upload/init', { cookie: guestA, json: { name: 'a.mp4', size: 1000 } });
+  const init = await req(srv.base, 'POST', '/api/upload/init', {
+    cookie: guestA,
+    json: { name: 'a.mp4', size: 1000 },
+  });
   const uid = init.data.uploadId;
   // Bob tries to push a chunk into Alice's upload session
   const r = await fetch(`${srv.base}/api/upload/${uid}/chunk?index=0`, {

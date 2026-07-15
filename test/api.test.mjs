@@ -34,7 +34,10 @@ test('login is forgiving of case and dashes', async () => {
 });
 
 test('admin creates a guest; guest can log in but is not admin', async () => {
-  const r = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Guest One'] } });
+  const r = await req(srv.base, 'POST', '/api/admin/guests', {
+    cookie: admin,
+    json: { names: ['Guest One'] },
+  });
   assert.equal(r.status, 201);
   const code = r.data[0].code;
   const gc = await login(srv.base, code);
@@ -43,12 +46,19 @@ test('admin creates a guest; guest can log in but is not admin', async () => {
 });
 
 test('revocation invalidates a live session immediately', async () => {
-  const created = await req(srv.base, 'POST', '/api/admin/guests', { cookie: admin, json: { names: ['Revoke Me'] } });
+  const created = await req(srv.base, 'POST', '/api/admin/guests', {
+    cookie: admin,
+    json: { names: ['Revoke Me'] },
+  });
   const id = created.data[0].id;
   const gc = await login(srv.base, created.data[0].code);
   assert.equal((await req(srv.base, 'GET', '/api/me', { cookie: gc })).status, 200);
   await req(srv.base, 'POST', `/api/admin/guests/${id}/revoke`, { cookie: admin });
-  assert.equal((await req(srv.base, 'GET', '/api/me', { cookie: gc })).status, 401, 'revoked session must die');
+  assert.equal(
+    (await req(srv.base, 'GET', '/api/me', { cookie: gc })).status,
+    401,
+    'revoked session must die',
+  );
   assert.equal(await login(srv.base, created.data[0].code), null, 'revoked code cannot re-login');
 });
 
@@ -87,9 +97,14 @@ test('listing: type filter and keyset paging', async () => {
   assert.equal(photos.status, 200);
   assert.ok(photos.data.items.every((i) => i.type === 'photo'));
   assert.ok(photos.data.nextCursor, 'should paginate');
-  const page2 = await req(srv.base, 'GET', `/api/media?type=photo&limit=2&cursor=${photos.data.nextCursor}`, { cookie: admin });
+  const page2 = await req(srv.base, 'GET', `/api/media?type=photo&limit=2&cursor=${photos.data.nextCursor}`, {
+    cookie: admin,
+  });
   const ids1 = new Set(photos.data.items.map((i) => i.id));
-  assert.ok(page2.data.items.every((i) => !ids1.has(i.id)), 'page 2 must not repeat page 1');
+  assert.ok(
+    page2.data.items.every((i) => !ids1.has(i.id)),
+    'page 2 must not repeat page 1',
+  );
 });
 
 test('download: zip of selected ids streams as application/zip', async () => {
@@ -128,10 +143,16 @@ test('download: empty selection 400', async () => {
 test('pin: admin pins, item moves to pinned set and out of paged items', async () => {
   const list = await req(srv.base, 'GET', '/api/media?limit=1', { cookie: admin });
   const id = list.data.items[0].id;
-  const pin = await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, { cookie: admin, json: { pinned: true } });
+  const pin = await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, {
+    cookie: admin,
+    json: { pinned: true },
+  });
   assert.equal(pin.status, 200);
   const after = await req(srv.base, 'GET', '/api/media', { cookie: admin });
-  assert.ok(after.data.pinned.some((i) => i.id === id), 'pinned set contains it');
+  assert.ok(
+    after.data.pinned.some((i) => i.id === id),
+    'pinned set contains it',
+  );
   assert.ok(!after.data.items.some((i) => i.id === id), 'paged items exclude it');
   // unpin
   await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, { cookie: admin, json: { pinned: false } });

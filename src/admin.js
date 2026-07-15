@@ -166,7 +166,10 @@ function mkBtn(label, onClick) {
 
 async function createCodes() {
   const textarea = panel.querySelector('#adminNames');
-  const names = textarea.value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const names = textarea.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (!names.length) return flash('Enter at least one name');
   const r = await fetch('/api/admin/guests', {
     method: 'POST',
@@ -177,7 +180,9 @@ async function createCodes() {
   const created = await r.json();
   const skipped = names.length - created.length;
   textarea.value = '';
-  flash(`Created ${created.length} code${created.length === 1 ? '' : 's'}${skipped > 0 ? `, skipped ${skipped} (existing name)` : ''}`);
+  flash(
+    `Created ${created.length} code${created.length === 1 ? '' : 's'}${skipped > 0 ? `, skipped ${skipped} (existing name)` : ''}`,
+  );
   refresh();
 }
 
@@ -213,7 +218,9 @@ async function importCsv(fileInput) {
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) return flash(d.error || 'Import failed');
-  flash(`Imported ${d.createdCount} guest${d.createdCount === 1 ? '' : 's'}${d.skipped ? `, skipped ${d.skipped}` : ''}`);
+  flash(
+    `Imported ${d.createdCount} guest${d.createdCount === 1 ? '' : 's'}${d.skipped ? `, skipped ${d.skipped}` : ''}`,
+  );
   refresh();
 }
 

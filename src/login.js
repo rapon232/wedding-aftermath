@@ -14,13 +14,16 @@ fetch('/api/me').then((r) => {
   if (r.ok) return location.replace('/');
   if (magicCode) {
     input.value = magicCode.toUpperCase();
-    (form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true })));
+    form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
   }
 });
 
 // Auto-format as XXXX-XXXX while typing.
 input.addEventListener('input', () => {
-  const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  const raw = input.value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 8);
   input.value = raw.length > 4 ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw;
   errorEl.hidden = true;
 });
@@ -45,7 +48,7 @@ form.addEventListener('submit', async (e) => {
     showError(
       res.status === 429
         ? 'Too many attempts — wait a minute and try again.'
-        : 'That code doesn’t match. Double-check and try again.'
+        : 'That code doesn’t match. Double-check and try again.',
     );
   } catch {
     showError('Connection problem — please try again.');

@@ -33,7 +33,11 @@ const fixName = (n) => {
   }
 };
 const cleanName = (n) =>
-  String(n).replace(/[/\\]/g, '_').replace(/[\x00-\x1f]/g, '').trim().slice(0, 200) || 'upload';
+  String(n)
+    .replace(/[/\\]/g, '_')
+    .replace(/[\x00-\x1f]/g, '')
+    .trim()
+    .slice(0, 200) || 'upload';
 
 // --- Disk-space guard + per-guest upload rate limit ---
 // Both run before a file is accepted, so guests get a clear message instead of a
@@ -86,7 +90,10 @@ async function finalizeUpload({ tmpPath, originalName, uploaderId }) {
   const existing = db.prepare('SELECT id, status, ext FROM media WHERE sha256 = ?').get(sha256);
   if (existing) {
     // Re-uploading a file whose processing previously failed → give it another shot.
-    if (existing.status === 'failed' && fs.existsSync(path.join(dirs.originals, `${existing.id}.${existing.ext}`))) {
+    if (
+      existing.status === 'failed' &&
+      fs.existsSync(path.join(dirs.originals, `${existing.id}.${existing.ext}`))
+    ) {
       db.prepare("UPDATE media SET status = 'processing' WHERE id = ?").run(existing.id);
       fs.rmSync(tmpPath, { force: true });
       enqueue(existing.id);
@@ -104,7 +111,7 @@ async function finalizeUpload({ tmpPath, originalName, uploaderId }) {
   try {
     db.prepare(
       `INSERT INTO media (id, uploader_id, filename, ext, type, size, sha256, taken_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`
+       VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
     ).run(id, uploaderId, filename, ext, type, size, sha256);
   } catch (err) {
     if (String(err.code).startsWith('SQLITE_CONSTRAINT')) {
@@ -189,7 +196,12 @@ mediaRouter.post('/api/upload/init', requireApi, uploadGuard, (req, res) => {
   const partPath = path.join(dirs.tmp, `${uploadId}.part`);
   fs.writeFileSync(partPath, '');
   chunkSessions.set(uploadId, {
-    name, size, uploaderId: req.guest.id, received: 0, partPath, touchedAt: Date.now(),
+    name,
+    size,
+    uploaderId: req.guest.id,
+    received: 0,
+    partPath,
+    touchedAt: Date.now(),
   });
   res.json({ uploadId, chunkSize: CHUNK_SIZE });
 });
@@ -239,7 +251,7 @@ mediaRouter.post(
     }
     s.touchedAt = Date.now();
     res.json({ received: s.received });
-  }
+  },
 );
 
 mediaRouter.post('/api/upload/:uid/finish', requireApi, async (req, res, next) => {
@@ -251,7 +263,11 @@ mediaRouter.post('/api/upload/:uid/finish', requireApi, async (req, res, next) =
       fs.rmSync(s.partPath, { force: true });
       throw httpError(400, `incomplete upload: got ${s.received} of ${s.size} bytes`);
     }
-    const result = await finalizeUpload({ tmpPath: s.partPath, originalName: s.name, uploaderId: s.uploaderId });
+    const result = await finalizeUpload({
+      tmpPath: s.partPath,
+      originalName: s.name,
+      uploaderId: s.uploaderId,
+    });
     res.status(result.duplicate ? 200 : 201).json(result);
   } catch (err) {
     next(err);
@@ -266,7 +282,7 @@ mediaRouter.get('/api/media/:id', requireApi, (req, res) => {
     .prepare(
       `SELECT m.id, m.type, m.status, m.filename, m.size, m.taken_at, m.uploaded_at,
               m.width, m.height, m.duration_s, m.pinned_at, m.uploader_id, g.name AS uploader_name
-       FROM media m JOIN guests g ON g.id = m.uploader_id WHERE m.id = ?`
+       FROM media m JOIN guests g ON g.id = m.uploader_id WHERE m.id = ?`,
     )
     .get(req.params.id);
   if (!m) return res.status(404).json({ error: 'not found' });
@@ -282,7 +298,7 @@ mediaRouter.post('/api/admin/media/:id/pin', requireAdmin, (req, res) => {
   const pinned = req.body?.pinned !== false; // default: pin
   db.prepare('UPDATE media SET pinned_at = ? WHERE id = ?').run(
     pinned ? new Date().toISOString() : null,
-    req.params.id
+    req.params.id,
   );
   broadcast({ type: 'refresh' }); // pinning reorders the gallery for everyone
   res.json({ ok: true, pinned });
@@ -298,12 +314,17 @@ mediaRouter.post('/api/media/:id/favorite', requireApi, (req, res) => {
   if (faved) {
     db.prepare('INSERT OR IGNORE INTO media_reactions (media_id, guest_id) VALUES (?, ?)').run(
       req.params.id,
-      req.guest.id
+      req.guest.id,
     );
   } else {
-    db.prepare('DELETE FROM media_reactions WHERE media_id = ? AND guest_id = ?').run(req.params.id, req.guest.id);
+    db.prepare('DELETE FROM media_reactions WHERE media_id = ? AND guest_id = ?').run(
+      req.params.id,
+      req.guest.id,
+    );
   }
-  const count = db.prepare('SELECT COUNT(*) AS n FROM media_reactions WHERE media_id = ?').get(req.params.id).n;
+  const count = db
+    .prepare('SELECT COUNT(*) AS n FROM media_reactions WHERE media_id = ?')
+    .get(req.params.id).n;
   res.json({ ok: true, faved, count });
 });
 
@@ -312,7 +333,8 @@ mediaRouter.post('/api/media/:id/favorite', requireApi, (req, res) => {
 mediaRouter.delete('/api/media/:id', requireApi, (req, res) => {
   const m = db.prepare('SELECT id, ext, uploader_id FROM media WHERE id = ?').get(req.params.id);
   if (!m) return res.status(404).json({ error: 'not found' });
-  if (m.uploader_id !== req.guest.id && !req.guest.is_admin) return res.status(403).json({ error: 'forbidden' });
+  if (m.uploader_id !== req.guest.id && !req.guest.is_admin)
+    return res.status(403).json({ error: 'forbidden' });
   for (const p of Object.values(mediaFilePaths(m))) fs.rmSync(p, { force: true });
   db.prepare('DELETE FROM media WHERE id = ?').run(m.id);
   broadcast({ type: 'deleted', id: m.id });
@@ -325,7 +347,9 @@ mediaRouter.use((err, _req, res, _next) => {
   // Client aborted / truncated the multipart stream (flaky mobile connection).
   // It's not a server fault — return a retriable 4xx instead of a scary 500.
   if (err?.message === 'Unexpected end of form' || err?.code === 'ECONNRESET') {
-    console.warn(`upload truncated (${err.message || err.code}) ua="${_req.headers['user-agent'] || ''}" len=${_req.headers['content-length'] || '?'}`);
+    console.warn(
+      `upload truncated (${err.message || err.code}) ua="${_req.headers['user-agent'] || ''}" len=${_req.headers['content-length'] || '?'}`,
+    );
     return res.status(400).json({ error: 'upload interrupted — please retry' });
   }
   if (err?.status) return res.status(err.status).json({ error: err.message });

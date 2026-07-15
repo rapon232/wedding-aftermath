@@ -33,7 +33,9 @@ function backupDb() {
 }
 
 const videos = db
-  .prepare("SELECT id, filename, ext, taken_at, duration_s FROM media WHERE type = 'video' ORDER BY uploaded_at ASC")
+  .prepare(
+    "SELECT id, filename, ext, taken_at, duration_s FROM media WHERE type = 'video' ORDER BY uploaded_at ASC",
+  )
   .all();
 
 console.log(`${APPLY ? 'APPLY' : 'DRY-RUN'} — ${videos.length} video(s) to check\n`);
@@ -42,7 +44,10 @@ if (APPLY && videos.length) backupDb();
 
 // Fix capture date AND duration (duration_s feeds the thumbnail badge).
 const update = db.prepare('UPDATE media SET taken_at = ?, duration_s = ? WHERE id = ?');
-let changed = 0, unchanged = 0, noData = 0, missing = 0;
+let changed = 0,
+  unchanged = 0,
+  noData = 0,
+  missing = 0;
 
 for (const v of videos) {
   const original = path.join(dirs.originals, `${v.id}.${v.ext}`);
@@ -73,6 +78,7 @@ for (const v of videos) {
 
 console.log(
   `\n${APPLY ? 'Applied' : 'Would change'}: ${changed}  |  already correct: ${unchanged}  |  ` +
-    `nothing found (left as-is): ${noData}  |  missing file: ${missing}`
+    `nothing found (left as-is): ${noData}  |  missing file: ${missing}`,
 );
-if (!APPLY && changed) console.log('\nRe-run with --apply to write these changes (db.sqlite is backed up first).');
+if (!APPLY && changed)
+  console.log('\nRe-run with --apply to write these changes (db.sqlite is backed up first).');

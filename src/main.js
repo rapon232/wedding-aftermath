@@ -6,7 +6,10 @@ import { initGallery, reload, maybeOpenFromHash } from './gallery.js';
 import { initAdmin } from './admin.js';
 import { initNotes } from './notes.js';
 
-const getMe = () => fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const getMe = () =>
+  fetch('/api/me')
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
 
 async function init() {
   // Right after login the session cookie can lag the first navigation on some
@@ -40,7 +43,10 @@ async function init() {
 
   const noteFmt = new Intl.DateTimeFormat('en-GB', {
     timeZone: me.eventTz || 'Europe/Rome',
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   });
   initNotes(document.getElementById('noteBtn'), me, (iso) => noteFmt.format(new Date(iso)));
 
