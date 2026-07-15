@@ -22,7 +22,7 @@ The system SHALL display all media in a responsive thumbnail grid usable on both
 
 ### Requirement: Lightbox viewing and video playback
 
-The system SHALL open media full-screen in a lightbox with next/previous navigation (swipe on touch, arrow keys on desktop). Videos SHALL play in-browser with a poster image and standard controls, supporting seeking. Navigation controls SHALL reflect the actual bounds of the browsable set: the previous control SHALL be shown only when an earlier item exists, and the next control SHALL be shown only when a later item exists or another page can still be fetched. The prev/next/close controls SHALL be visually centered. Photo zoom (pinch and double-tap) SHALL update smoothly on touch devices and SHALL be focal: pinch zoom SHALL anchor at the touch midpoint and follow it while both fingers move, and double-tap SHALL zoom toward the tapped point. A zoomed photo SHALL NOT be pannable past the viewport edges: overscroll SHALL be attenuated (rubber-band) during the gesture and SHALL animate back within bounds on release; pinching below 1× SHALL be elastic and spring back to fit. The maximum zoom SHALL be 4×.
+The system SHALL open media full-screen in a lightbox with next/previous navigation (swipe on touch, arrow keys on desktop). Videos SHALL play in-browser with a poster image and standard controls, supporting seeking. Navigation controls SHALL reflect the actual bounds of the browsable set: the previous control SHALL be shown only when an earlier item exists, and the next control SHALL be shown only when a later item exists or another page can still be fetched. The prev/next/close controls SHALL be visually centered. Photo zoom (pinch and double-tap) SHALL update smoothly on touch devices and SHALL be focal: pinch zoom SHALL anchor at the touch midpoint and follow it while both fingers move, and double-tap SHALL zoom toward the tapped point. A zoomed photo SHALL NOT be pannable past the viewport edges: overscroll SHALL be attenuated (rubber-band) during the gesture and SHALL animate back within bounds on release; pinching below 1× SHALL be elastic and spring back to fit. The maximum zoom SHALL be 4×. On desktop, trackpad pinch SHALL zoom focally at the cursor (never triggering browser page zoom while the lightbox is open), and a zoomed photo SHALL be pannable by scroll and by mouse drag. Returning to fit (double-tap, double-click, or zooming out) SHALL restore the chrome; zooming in SHALL hide it.
 
 A single tap in the lightbox SHALL toggle an immersive view that hides all chrome (navigation arrows, close control, caption/action bar, unmute control) over a pure-black backdrop; tapping the background SHALL NOT close the lightbox. Immersive state SHALL persist across prev/next navigation and SHALL reset to chrome-visible when the lightbox is reopened; starting a pinch SHALL hide the chrome. The lightbox SHALL close via the close control, the Escape key, or a downward swipe on an unzoomed item that passes a dismiss threshold (springing back otherwise). When the comments panel is open, a tap SHALL close the panel instead of toggling chrome. Video playback interaction SHALL remain owned by the native player controls.
 
@@ -49,7 +49,12 @@ A single tap in the lightbox SHALL toggle an immersive view that hides all chrom
 #### Scenario: Focal double-tap zoom
 
 - **WHEN** a guest double-taps a spot on an unzoomed photo
-- **THEN** the photo zooms to 2.5× toward the tapped spot; a second double-tap returns it to fit
+- **THEN** the photo zooms to 2.5× toward the tapped spot; a second double-tap returns it to fit with the controls visible again
+
+#### Scenario: Desktop trackpad zoom
+
+- **WHEN** a guest pinches on a Mac trackpad over a photo in the lightbox
+- **THEN** the photo zooms focally at the cursor without the browser zooming the page, and scroll or mouse drag pans the zoomed photo
 
 #### Scenario: Pan stays in bounds with rubber-band
 

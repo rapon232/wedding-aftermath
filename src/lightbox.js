@@ -29,6 +29,7 @@ function cancelTap() {
   clearTimeout(tapTimer);
   tapTimer = 0;
 }
+let suppressClicksUntil = 0; // set on mouse-drag release — that click is not a tap
 
 export function initLightbox(config) {
   me = config.me;
@@ -105,6 +106,7 @@ function build() {
   // Single tap (photo or background) toggles the chrome — iOS gallery model.
   // Closing is via the X, Escape, or swipe-down; tap-to-close is gone.
   overlay.addEventListener('click', (e) => {
+    if (Date.now() < suppressClicksUntil) return; // tail end of a mouse drag-pan
     if (e.target.closest('button, a, input, .lb-caption, .lb-comments')) return; // controls keep working
     if (e.target.tagName === 'VIDEO') return; // native player owns video taps
     if (commentsOpen) return setComments(false); // first tap closes the panel
@@ -115,6 +117,9 @@ function build() {
       setImmersive(!immersive);
     }, 300);
   });
+
+  // Trackpad pinch over the background must not zoom the page itself.
+  overlay.addEventListener('wheel', (e) => e.ctrlKey && e.preventDefault(), { passive: false });
 
   document.addEventListener('keydown', (e) => {
     if (overlay.hidden) return;
@@ -263,7 +268,12 @@ function setupZoom(img) {
   };
   // Fingers lifted: spring the raw state back inside the legal range.
   const settle = () => {
-    if (scale <= 1) return reset();
+    if (scale <= 1) {
+      // A real gesture ending at/under fit restores the chrome; a plain tap
+      // (nothing to reset) must not fight the tap-toggle.
+      if (scale < 1) setImmersive(false);
+      return reset();
+    }
     smooth(true);
     scale = Math.min(MAX_SCALE, scale);
     const b = bounds(scale);
@@ -297,7 +307,12 @@ function setupZoom(img) {
         const now = Date.now();
         if (now - lastTap < 300) {
           const t = e.touches[0];
-          scale > 1 ? reset() : zoomTo(t.clientX, t.clientY);
+          if (scale > 1) {
+            reset();
+            setImmersive(false); // back to the overview — controls return
+          } else {
+            zoomTo(t.clientX, t.clientY);
+          }
           e.preventDefault();
           cancelTap(); // it was a double-tap, not a chrome toggle
         }
@@ -356,7 +371,93 @@ function setupZoom(img) {
   };
   img.addEventListener('touchend', endGesture);
   img.addEventListener('touchcancel', endGesture);
-  img.addEventListener('dblclick', (e) => (scale > 1 ? reset() : zoomTo(e.clientX, e.clientY)));
+  img.addEventListener('dblclick', (e) => {
+    if (scale > 1) {
+      reset();
+      setImmersive(false); // back to the overview — controls return
+    } else {
+      zoomTo(e.clientX, e.clientY);
+    }
+  });
+
+  // --- Desktop: trackpad pinch / scroll-pan / drag-pan ---
+  // Continuous focal zoom at the cursor, hard-clamped (no rubber — there is no
+  // release moment to spring back on). Fit ↔ zoomed also drives the chrome.
+  const desktopZoom = (x, y, factor) => {
+    measure();
+    smooth(false);
+    const next = clamp(scale * factor, 1, MAX_SCALE);
+    if (next === scale) return;
+    const f = next / scale;
+    const m = { x: x - base.cx, y: y - base.cy };
+    scale = next;
+    const b = bounds(scale);
+    tx = clamp(m.x - f * (m.x - tx), -b.x, b.x);
+    ty = clamp(m.y - f * (m.y - ty), -b.y, b.y);
+    setImmersive(scale > 1); // zoomed = immersive, back to fit = controls
+    apply();
+  };
+  // Chrome/Firefox report trackpad pinch as ctrl+wheel; a plain wheel while
+  // zoomed pans (two-finger scroll around the photo).
+  img.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault(); // ours — not browser page zoom
+        desktopZoom(e.clientX, e.clientY, Math.exp(-e.deltaY / 100));
+      } else if (scale > 1) {
+        e.preventDefault();
+        measure();
+        const b = bounds(scale);
+        tx = clamp(tx - e.deltaX, -b.x, b.x);
+        ty = clamp(ty - e.deltaY, -b.y, b.y);
+        apply();
+      }
+    },
+    { passive: false },
+  );
+  // Safari (macOS) reports trackpad pinch as gesture* events instead. Only
+  // wire them where there is no touchscreen — iOS fires them alongside touch
+  // events and the pinch would apply twice.
+  if (!('ontouchstart' in window)) {
+    let gestureScale = 1;
+    img.addEventListener('gesturestart', (e) => {
+      e.preventDefault();
+      gestureScale = e.scale;
+    });
+    img.addEventListener('gesturechange', (e) => {
+      e.preventDefault();
+      desktopZoom(e.clientX, e.clientY, e.scale / gestureScale);
+      gestureScale = e.scale;
+    });
+    img.addEventListener('gestureend', (e) => e.preventDefault());
+  }
+  // Mouse drag pans when zoomed; rubber-band + settle work as on touch.
+  img.addEventListener('mousedown', (e) => {
+    if (scale <= 1 || e.button !== 0) return;
+    e.preventDefault(); // no native image drag / text selection
+    smooth(false);
+    const sx = e.clientX - tx;
+    const sy = e.clientY - ty;
+    let moved = false;
+    img.style.cursor = 'grabbing';
+    const move = (ev) => {
+      moved = true;
+      tx = ev.clientX - sx;
+      ty = ev.clientY - sy;
+      apply();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      img.style.cursor = 'grab';
+      // The click that follows a drag is not a tap — keep it from toggling chrome.
+      if (moved) suppressClicksUntil = Date.now() + 50;
+      settle();
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  });
 }
 
 function show() {
