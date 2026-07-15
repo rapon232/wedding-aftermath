@@ -22,7 +22,9 @@ The system SHALL display all media in a responsive thumbnail grid usable on both
 
 ### Requirement: Lightbox viewing and video playback
 
-The system SHALL open media full-screen in a lightbox with next/previous navigation (swipe on touch, arrow keys on desktop). Videos SHALL play in-browser with a poster image and standard controls, supporting seeking. Navigation controls SHALL reflect the actual bounds of the browsable set: the previous control SHALL be shown only when an earlier item exists, and the next control SHALL be shown only when a later item exists or another page can still be fetched. The prev/next/close controls SHALL be visually centered. Photo zoom (pinch and double-tap) SHALL update smoothly on touch devices.
+The system SHALL open media full-screen in a lightbox with next/previous navigation (swipe on touch, arrow keys on desktop). Videos SHALL play in-browser with a poster image and standard controls, supporting seeking. Navigation controls SHALL reflect the actual bounds of the browsable set: the previous control SHALL be shown only when an earlier item exists, and the next control SHALL be shown only when a later item exists or another page can still be fetched. The prev/next/close controls SHALL be visually centered. Photo zoom (pinch and double-tap) SHALL update smoothly on touch devices and SHALL be focal: pinch zoom SHALL anchor at the touch midpoint and follow it while both fingers move, and double-tap SHALL zoom toward the tapped point. A zoomed photo SHALL NOT be pannable past the viewport edges: overscroll SHALL be attenuated (rubber-band) during the gesture and SHALL animate back within bounds on release; pinching below 1× SHALL be elastic and spring back to fit. The maximum zoom SHALL be 4×.
+
+A single tap in the lightbox SHALL toggle an immersive view that hides all chrome (navigation arrows, close control, caption/action bar, unmute control) over a pure-black backdrop; tapping the background SHALL NOT close the lightbox. Immersive state SHALL persist across prev/next navigation and SHALL reset to chrome-visible when the lightbox is reopened; starting a pinch SHALL hide the chrome. The lightbox SHALL close via the close control, the Escape key, or a downward swipe on an unzoomed item that passes a dismiss threshold (springing back otherwise). When the comments panel is open, a tap SHALL close the panel instead of toggling chrome. Video playback interaction SHALL remain owned by the native player controls.
 
 #### Scenario: No next control at the end of a filtered set
 
@@ -39,6 +41,41 @@ The system SHALL open media full-screen in a lightbox with next/previous navigat
 - **WHEN** a guest pinch-zooms or pans a photo on a phone
 - **THEN** the image tracks the gesture smoothly without visible jitter
 
+#### Scenario: Focal pinch zoom
+
+- **WHEN** a guest pinches outward with both fingers over a detail at the edge of a photo
+- **THEN** the photo zooms in anchored at the fingers' midpoint, keeping that detail under the fingers, and moving both fingers together pans the zoomed photo
+
+#### Scenario: Focal double-tap zoom
+
+- **WHEN** a guest double-taps a spot on an unzoomed photo
+- **THEN** the photo zooms to 2.5× toward the tapped spot; a second double-tap returns it to fit
+
+#### Scenario: Pan stays in bounds with rubber-band
+
+- **WHEN** a guest pans a zoomed photo past its edge and releases
+- **THEN** movement past the edge is attenuated during the drag and the photo animates back so its edge does not rest inside the viewport
+
+#### Scenario: Tap toggles immersive view
+
+- **WHEN** a guest single-taps a photo (or the surrounding background) in the lightbox
+- **THEN** all chrome fades out leaving only the media on a black backdrop, and a second single tap brings the chrome back
+
+#### Scenario: Immersive view persists while browsing
+
+- **WHEN** a guest hides the chrome and then swipes to the next photo
+- **THEN** the next photo is shown still without chrome, until the guest taps again or reopens the lightbox
+
+#### Scenario: Swipe down to close
+
+- **WHEN** a guest drags an unzoomed photo downward past the dismiss threshold and releases
+- **THEN** the lightbox closes; releasing before the threshold springs the photo back without closing
+
+#### Scenario: Background tap does not close
+
+- **WHEN** a guest taps the dark area beside the photo
+- **THEN** the lightbox stays open and only the chrome visibility toggles
+
 #### Scenario: Photo lightbox
 
 - **WHEN** a guest taps a photo thumbnail
@@ -47,7 +84,7 @@ The system SHALL open media full-screen in a lightbox with next/previous navigat
 #### Scenario: Video playback
 
 - **WHEN** a guest opens a video item
-- **THEN** the video plays in-browser with controls and supports seeking
+- **THEN** the video plays in-browser with controls and supports seeking, and taps on the video are handled by the native player controls
 
 ### Requirement: Sorting and filtering
 
