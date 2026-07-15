@@ -118,26 +118,64 @@ function build() {
   });
 }
 
-// --- Pinch / double-tap zoom for photos (11.8) ---
+// --- Focal pinch / double-tap zoom for photos (iPhone-style) ---
+// Transform model: translate(tx,ty) scale(s) about the image centre. Gesture
+// points are taken relative to the untransformed centre, so the anchor step
+// t' = m − (s'/s)·(m − t) keeps the image point under the fingers fixed while
+// the scale changes, and midpoint movement pans the photo with the fingers.
 let zoomed = false;
+const MAX_SCALE = 4;
+const TAP_ZOOM_SCALE = 2.5;
+const RUBBER = 0.3; // attenuation past the pan bounds / beyond the max scale
 const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+const touchMid = (t) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 function setupZoom(img) {
+  // tx/ty/scale hold the raw gesture state; paint() renders the rubber-banded
+  // view so overscroll stays elastic without corrupting the anchor math.
   let scale = 1,
     tx = 0,
     ty = 0,
-    startDist = 0,
-    startScale = 1,
-    lastTap = 0;
+    raf = 0;
+  let base = null; // untransformed centre + layout size (offset* metrics ignore transforms)
+  let pinch = null; // { dist, mid } at the previous pinch event
   let panning = false,
     panX = 0,
     panY = 0,
-    raf = 0;
+    lastTap = 0;
+
+  const measure = () => {
+    const s = img.parentElement.getBoundingClientRect();
+    base = {
+      cx: s.left + img.offsetLeft + img.offsetWidth / 2,
+      cy: s.top + img.offsetTop + img.offsetHeight / 2,
+      w: img.offsetWidth,
+      h: img.offsetHeight,
+    };
+  };
+  // How far the photo may translate before its edge leaves the viewport edge.
+  const bounds = (s) => ({
+    x: Math.max(0, (s * base.w - window.innerWidth) / 2),
+    y: Math.max(0, (s * base.h - window.innerHeight) / 2),
+  });
+  const rubber = (v, b) => (Math.abs(v) <= b ? v : Math.sign(v) * (b + (Math.abs(v) - b) * RUBBER));
+
   // Batch transform writes to one per animation frame — writing on every
   // touchmove is what made pinch/pan jitter on phones.
   const paint = () => {
     raf = 0;
-    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    let ps = scale,
+      px = tx,
+      py = ty;
+    if (base) {
+      if (ps > MAX_SCALE) ps = MAX_SCALE + (ps - MAX_SCALE) * RUBBER;
+      if (ps < 1) ps = Math.max(0.9, 1 - (1 - ps) * 0.35); // elastic under-pinch
+      const b = bounds(ps);
+      px = rubber(tx, b.x);
+      py = rubber(ty, b.y);
+    }
+    img.style.transform = `translate(${px}px, ${py}px) scale(${ps})`;
   };
   const apply = () => {
     zoomed = scale > 1;
@@ -152,22 +190,42 @@ function setupZoom(img) {
     tx = ty = 0;
     apply();
   };
-  const zoomIn = () => {
-    smooth(true); // animate the discrete jump
-    scale = 2.5;
+  // Fingers lifted: spring the raw state back inside the legal range.
+  const settle = () => {
+    if (scale <= 1) return reset();
+    smooth(true);
+    scale = Math.min(MAX_SCALE, scale);
+    const b = bounds(scale);
+    tx = clamp(tx, -b.x, b.x);
+    ty = clamp(ty, -b.y, b.y);
     apply();
   };
+  // Discrete focal jump to the tapped point (hard-clamped, no rubber).
+  const zoomTo = (x, y) => {
+    smooth(true);
+    measure();
+    const m = { x: x - base.cx, y: y - base.cy };
+    const f = TAP_ZOOM_SCALE / scale;
+    scale = TAP_ZOOM_SCALE;
+    const b = bounds(scale);
+    tx = clamp(m.x - f * (m.x - tx), -b.x, b.x);
+    ty = clamp(m.y - f * (m.y - ty), -b.y, b.y);
+    apply();
+  };
+
   img.addEventListener(
     'touchstart',
     (e) => {
       if (e.touches.length === 2) {
         smooth(false); // no transition mid-gesture
-        startDist = touchDist(e.touches);
-        startScale = scale;
+        measure();
+        pinch = { dist: touchDist(e.touches), mid: touchMid(e.touches) };
+        panning = false;
       } else if (e.touches.length === 1) {
         const now = Date.now();
         if (now - lastTap < 300) {
-          scale > 1 ? reset() : zoomIn();
+          const t = e.touches[0];
+          scale > 1 ? reset() : zoomTo(t.clientX, t.clientY);
           e.preventDefault();
         }
         lastTap = now;
@@ -184,12 +242,21 @@ function setupZoom(img) {
   img.addEventListener(
     'touchmove',
     (e) => {
-      if (e.touches.length === 2) {
+      if (e.touches.length === 2 && pinch) {
         e.preventDefault();
-        scale = Math.min(4, Math.max(1, startScale * (touchDist(e.touches) / startDist)));
-        if (scale === 1) tx = ty = 0;
+        const dist = touchDist(e.touches);
+        const mid = touchMid(e.touches);
+        // Raw scale may drift past the limits; paint() renders it elastically.
+        const next = clamp(scale * (dist / pinch.dist), 0.5, MAX_SCALE * 1.5);
+        const f = next / scale;
+        // Anchor: the image point that was under the previous midpoint lands
+        // under the current one — focal zoom and two-finger pan in one step.
+        tx = mid.x - base.cx - f * (pinch.mid.x - base.cx - tx);
+        ty = mid.y - base.cy - f * (pinch.mid.y - base.cy - ty);
+        scale = next;
+        pinch = { dist, mid };
         apply();
-      } else if (panning && scale > 1) {
+      } else if (panning && e.touches.length === 1 && scale > 1) {
         e.preventDefault();
         tx = e.touches[0].clientX - panX;
         ty = e.touches[0].clientY - panY;
@@ -198,11 +265,25 @@ function setupZoom(img) {
     },
     { passive: false },
   );
-  img.addEventListener('touchend', () => {
+  const endGesture = (e) => {
+    if (e.touches.length === 1 && pinch) {
+      // Pinch → one-finger pan handoff without a jump.
+      pinch = null;
+      if (scale > 1) {
+        panning = true;
+        panX = e.touches[0].clientX - tx;
+        panY = e.touches[0].clientY - ty;
+      }
+      return;
+    }
+    if (e.touches.length > 0) return;
     panning = false;
-    if (scale <= 1) reset();
-  });
-  img.addEventListener('dblclick', () => (scale > 1 ? reset() : zoomIn()));
+    pinch = null;
+    settle();
+  };
+  img.addEventListener('touchend', endGesture);
+  img.addEventListener('touchcancel', endGesture);
+  img.addEventListener('dblclick', (e) => (scale > 1 ? reset() : zoomTo(e.clientX, e.clientY)));
 }
 
 function show() {

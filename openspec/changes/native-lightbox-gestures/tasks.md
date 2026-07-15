@@ -2,16 +2,16 @@
 
 ## 1. Prettier (standalone format commit — land before any feature work)
 
-- [ ] 1.1 Add `prettier@^3` as devDependency; create `.prettierrc` (`printWidth: 110`, `singleQuote: true`) and `.prettierignore` (`dist/`, `data/`, `node_modules/`, `package-lock.json`); add `"format"` and `"format:check"` npm scripts
-- [ ] 1.2 Run `npm run format` across the repo, verify `npm test` and `npm run build` still pass, and commit config + reformat as one commit
-- [ ] 1.3 Add `.git-blame-ignore-revs` containing the format commit's hash (separate tiny commit; note `git config blame.ignoreRevsFile .git-blame-ignore-revs` in the commit message)
+- [x] 1.1 Add `prettier@^3` as devDependency; create `.prettierrc` (`printWidth: 110`, `singleQuote: true`) and `.prettierignore` (`dist/`, `data/`, `node_modules/`, `package-lock.json`); add `"format"` and `"format:check"` npm scripts
+- [x] 1.2 Run `npm run format` across the repo, verify `npm test` and `npm run build` still pass, and commit config + reformat as one commit
+- [x] 1.3 Add `.git-blame-ignore-revs` containing the format commit's hash (separate tiny commit; note `git config blame.ignoreRevsFile .git-blame-ignore-revs` in the commit message)
 
 ## 2. Focal pinch-to-zoom (src/lightbox.js `setupZoom`)
 
-- [ ] 2.1 Rework pinch math: anchor scale changes at the live touch midpoint (`tx' = Mx − (s'/s)(Mx − tx)`, coordinates relative to the image center) and add the midpoint delta to `tx/ty` each move (two-finger pan), keeping the existing rAF batching and `smooth()` structure
-- [ ] 2.2 Make double-tap (and desktop double-click) zoom toward the tapped point at 2.5× using the same focal formula; second double-tap resets to fit
-- [ ] 2.3 Add pan clamping helpers (bounds `±max(0, (s·dim − viewport)/2)`) with rubber-band attenuation (~0.3×) past bounds during the gesture and animated snap-back on `touchend`
-- [ ] 2.4 Add elastic sub-1× pinch: allow scale down to 0.9 during the gesture, spring back to `scale 1, tx/ty 0` on release; max scale stays 4
+- [x] 2.1 Rework pinch math: anchor scale changes at the live touch midpoint (`tx' = Mx − (s'/s)(Mx − tx)`, coordinates relative to the image center) and add the midpoint delta to `tx/ty` each move (two-finger pan), keeping the existing rAF batching and `smooth()` structure
+- [x] 2.2 Make double-tap (and desktop double-click) zoom toward the tapped point at 2.5× using the same focal formula; second double-tap resets to fit
+- [x] 2.3 Add pan clamping helpers (bounds `±max(0, (s·dim − viewport)/2)`) with rubber-band attenuation (~0.3×) past bounds during the gesture and animated snap-back on `touchend`
+- [x] 2.4 Add elastic sub-1× pinch: allow scale down to 0.9 during the gesture, spring back to `scale 1, tx/ty 0` on release; max scale stays 4
 
 ## 3. Immersive mode + swipe-down-to-close
 
