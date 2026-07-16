@@ -8,7 +8,7 @@ TBD - created by archiving change build-photo-sharing-site. Update Purpose after
 
 ### Requirement: Single-file original download
 
-The system SHALL let guests download any item as the original uploaded file, with a filename and Content-Disposition that saves correctly on mobile and desktop. On touch devices with Web Share support, the lightbox Save control SHALL open the native share sheet with the original file (so guests can save straight to their photo library), falling back to the plain download when sharing is unavailable or fails.
+The system SHALL let guests download any item as the original uploaded file, with a filename and Content-Disposition that saves correctly on mobile and desktop. On touch devices with Web Share support, the lightbox Save control SHALL open the native share sheet with the original file (so guests can save straight to their photo library), falling back to the plain download when sharing is unavailable or fails. While the original is being fetched for sharing, the Save control SHALL show determinate progress (a filling pie with a percentage), or an indeterminate spinner when the size is unknown.
 
 #### Scenario: Save to photo library on mobile
 

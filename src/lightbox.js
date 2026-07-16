@@ -105,16 +105,45 @@ function build() {
   // library there, instead of a Files download. Falls back to the plain
   // download link when share isn't available (or the fetch/share fails).
   const dl = overlay.querySelector('.lb-download');
+  // While the original streams down (minutes for a big video), the button
+  // shows a little pie that fills with the download so the wait reads as
+  // progress, not a hang. No Content-Length → indeterminate spinning wedge.
+  const showPie = (determinate) => {
+    dl.innerHTML = `<span class="lb-save-pie"${determinate ? '' : ' data-spin'}></span><span class="lb-save-pct">${determinate ? '0%' : 'Saving…'}</span>`;
+  };
+  const setPie = (p) => {
+    dl.querySelector('.lb-save-pie').style.setProperty('--p', p);
+    dl.querySelector('.lb-save-pct').textContent = `${Math.round(p * 100)}%`;
+  };
   dl.addEventListener('click', async (e) => {
     const item = list[idx];
     if (!item || !('ontouchstart' in window) || !navigator.canShare) return; // plain download
     e.preventDefault();
+    if (dl.dataset.busy) return; // one save at a time
+    dl.dataset.busy = '1';
     const label = dl.textContent;
-    dl.textContent = 'Saving…';
     try {
       const r = await fetch(`/media/file/${item.id}`);
       if (!r.ok) throw new Error();
-      const blob = await r.blob();
+      const total = +r.headers.get('Content-Length') || 0;
+      let blob;
+      if (r.body && total) {
+        showPie(true);
+        const reader = r.body.getReader();
+        const chunks = [];
+        let got = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          got += value.length;
+          setPie(Math.min(1, got / total));
+        }
+        blob = new Blob(chunks, { type: r.headers.get('Content-Type') || '' });
+      } else {
+        showPie(false);
+        blob = await r.blob();
+      }
       const file = new File([blob], item.filename, { type: blob.type });
       if (!navigator.canShare({ files: [file] })) throw new Error();
       await navigator.share({ files: [file] });
@@ -123,6 +152,7 @@ function build() {
       if (err?.name !== 'AbortError') location.href = `/media/file/${item.id}?download=1`;
     } finally {
       dl.textContent = label;
+      delete dl.dataset.busy;
     }
   });
   overlay.querySelector('.lb-comment').addEventListener('click', toggleComments);
