@@ -30,6 +30,7 @@ function cancelTap() {
   tapTimer = 0;
 }
 let suppressClicksUntil = 0; // set on mouse-drag release — that click is not a tap
+let readyToShare = null; // { id, file } downloaded but waiting for a fresh tap to share
 
 export function initLightbox(config) {
   me = config.me;
@@ -107,7 +108,9 @@ function build() {
   const dl = overlay.querySelector('.lb-download');
   // While the original streams down (minutes for a big video), the button
   // shows a little pie that fills with the download so the wait reads as
-  // progress, not a hang. No Content-Length → indeterminate spinning wedge.
+  // progress, not a hang. The bytes come via XHR so the engine assembles
+  // the blob natively — reading fetch chunks into JS doubled peak memory
+  // and made big videos fail to share on iOS. Unknown size → spinner.
   const showPie = (determinate) => {
     dl.innerHTML = `<span class="lb-save-pie"${determinate ? '' : ' data-spin'}></span><span class="lb-save-pct">${determinate ? '0%' : 'Saving…'}</span>`;
   };
@@ -115,43 +118,57 @@ function build() {
     dl.querySelector('.lb-save-pie').style.setProperty('--p', p);
     dl.querySelector('.lb-save-pct').textContent = `${Math.round(p * 100)}%`;
   };
+  const fetchBlob = (url) =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      let determinate = false;
+      xhr.open('GET', url);
+      xhr.responseType = 'blob';
+      xhr.onprogress = (ev) => {
+        if (!ev.lengthComputable) return;
+        if (!determinate) {
+          determinate = true;
+          showPie(true);
+        }
+        setPie(Math.min(1, ev.loaded / ev.total));
+      };
+      xhr.onload = () =>
+        xhr.status === 200 ? resolve(xhr.response) : reject(new Error(`HTTP ${xhr.status}`));
+      xhr.onerror = () => reject(new Error('network error'));
+      xhr.send();
+    });
   dl.addEventListener('click', async (e) => {
     const item = list[idx];
     if (!item || !('ontouchstart' in window) || !navigator.canShare) return; // plain download
     e.preventDefault();
     if (dl.dataset.busy) return; // one save at a time
     dl.dataset.busy = '1';
-    const label = dl.textContent;
+    let file = null;
     try {
-      const r = await fetch(`/media/file/${item.id}`);
-      if (!r.ok) throw new Error();
-      const total = +r.headers.get('Content-Length') || 0;
-      let blob;
-      if (r.body && total) {
-        showPie(true);
-        const reader = r.body.getReader();
-        const chunks = [];
-        let got = 0;
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          got += value.length;
-          setPie(Math.min(1, got / total));
-        }
-        blob = new Blob(chunks, { type: r.headers.get('Content-Type') || '' });
+      if (readyToShare && readyToShare.id === item.id) {
+        file = readyToShare.file; // downloaded already — this tap is the fresh gesture
       } else {
-        showPie(false);
-        blob = await r.blob();
+        showPie(false); // spinner until the first sized progress event
+        const blob = await fetchBlob(`/media/file/${item.id}`);
+        file = new File([blob], item.filename, { type: blob.type });
       }
-      const file = new File([blob], item.filename, { type: blob.type });
-      if (!navigator.canShare({ files: [file] })) throw new Error();
+      readyToShare = null;
+      if (!navigator.canShare({ files: [file] })) throw new Error('unsupported');
       await navigator.share({ files: [file] });
+      dl.textContent = 'Save';
     } catch (err) {
-      // Cancelling the sheet is fine; anything else falls back to download.
-      if (err?.name !== 'AbortError') location.href = `/media/file/${item.id}?download=1`;
+      if (err?.name === 'AbortError') {
+        dl.textContent = 'Save'; // guest closed the sheet — nothing to do
+      } else if (err?.name === 'NotAllowedError' && file) {
+        // A long download outlived the tap's activation window. Keep the
+        // file and ask for one fresh tap instead of dumping it into Files.
+        readyToShare = { id: item.id, file };
+        dl.textContent = 'Tap to share';
+      } else {
+        dl.textContent = 'Save';
+        location.href = `/media/file/${item.id}?download=1`;
+      }
     } finally {
-      dl.textContent = label;
       delete dl.dataset.busy;
     }
   });
@@ -586,7 +603,12 @@ function show() {
 
   overlay.querySelector('.lb-by').textContent = `by ${item.uploader_name}`;
   overlay.querySelector('.lb-date').textContent = item.taken_at ? fmtDate(item.taken_at) : '';
-  overlay.querySelector('.lb-download').href = `/media/file/${item.id}?download=1`;
+  const dlBtn = overlay.querySelector('.lb-download');
+  dlBtn.href = `/media/file/${item.id}?download=1`;
+  // New item: a held share-file or "Tap to share" label no longer applies
+  // (but never wipe the pie of a download still in flight).
+  readyToShare = null;
+  if (!dlBtn.dataset.busy) dlBtn.textContent = 'Save';
   overlay.querySelector('.lb-delete').hidden = !(me.isAdmin || item.uploader_id === me.id);
   const pinBtn = overlay.querySelector('.lb-pin');
   pinBtn.hidden = !me.isAdmin;
