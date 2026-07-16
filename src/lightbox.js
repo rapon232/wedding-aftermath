@@ -163,7 +163,7 @@ function build() {
         // A long download outlived the tap's activation window. Keep the
         // file and ask for one fresh tap instead of dumping it into Files.
         readyToShare = { id: item.id, file };
-        dl.textContent = 'Tap to share';
+        dl.textContent = 'Tap to save';
       } else {
         dl.textContent = 'Save';
         location.href = `/media/file/${item.id}?download=1`;
@@ -605,7 +605,7 @@ function show() {
   overlay.querySelector('.lb-date').textContent = item.taken_at ? fmtDate(item.taken_at) : '';
   const dlBtn = overlay.querySelector('.lb-download');
   dlBtn.href = `/media/file/${item.id}?download=1`;
-  // New item: a held share-file or "Tap to share" label no longer applies
+  // New item: a held share-file or "Tap to save" label no longer applies
   // (but never wipe the pie of a download still in flight).
   readyToShare = null;
   if (!dlBtn.dataset.busy) dlBtn.textContent = 'Save';
