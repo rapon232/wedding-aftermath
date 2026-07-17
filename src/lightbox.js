@@ -194,6 +194,11 @@ function build() {
   // Trackpad pinch over the background must not zoom the page itself.
   overlay.addEventListener('wheel', (e) => e.ctrlKey && e.preventDefault(), { passive: false });
 
+  // Rotation / window resize moves the photo — re-anchor the comment overlay.
+  window.addEventListener('resize', () => {
+    if (!overlay.hidden) renderLive(list[idx]);
+  });
+
   document.addEventListener('keydown', (e) => {
     if (overlay.hidden) return;
     if (e.key === 'Escape') return commentsOpen ? setComments(false) : close();
@@ -784,10 +789,29 @@ async function deleteComment(id) {
 
 // Live overlay: the latest few comments over the photo, chat style. Renders
 // from listing data (comments_preview) — never fetches.
+// Anchored to the photo's bottom-left corner, not the viewport: offset*
+// metrics ignore transforms (the stage's open animation, zoom), and the
+// stage fills the overlay, so offsets map straight to overlay coordinates.
+function placeLive(box) {
+  const media = overlay.querySelector('.lb-stage img, .lb-stage video');
+  if (!media) return; // video-fallback card → keep the CSS default spot
+  const mediaBottom = media.offsetTop + media.offsetHeight;
+  const captionH = overlay.querySelector('.lb-caption').offsetHeight;
+  // Inside the photo, but never dipping into the caption bar.
+  box.style.left = `${media.offsetLeft + 12}px`;
+  box.style.bottom = `${Math.max(overlay.clientHeight - mediaBottom + 12, captionH + 10)}px`;
+  box.style.maxWidth = `${Math.max(120, media.offsetWidth - 24)}px`;
+}
+
 function renderLive(item) {
   const box = overlay.querySelector('.lb-live');
   box.innerHTML = '';
-  for (const c of item?.comments_preview || []) {
+  const preview = item?.comments_preview || [];
+  if (!preview.length) {
+    box.style.visibility = 'hidden';
+    return;
+  }
+  for (const c of preview) {
     const row = document.createElement('div');
     row.className = 'lb-live-row';
     const who = document.createElement('span');
@@ -799,6 +823,17 @@ function renderLive(item) {
     row.append(who, body);
     box.appendChild(row);
   }
+  // The photo's rendered box is only known once it has dimensions.
+  const media = overlay.querySelector('.lb-stage img, .lb-stage video');
+  box.style.visibility = 'hidden';
+  const reveal = () => {
+    placeLive(box);
+    box.style.visibility = '';
+  };
+  const ready =
+    media && (media.tagName === 'IMG' ? media.complete && media.naturalWidth : media.readyState >= 1);
+  if (ready || !media) reveal();
+  else media.addEventListener(media.tagName === 'IMG' ? 'load' : 'loadedmetadata', reveal, { once: true });
 }
 
 function updateFavBtn(item) {

@@ -788,8 +788,8 @@ body.lightbox-open .wrapper {
    Pointer-transparent — every tap/pinch/swipe passes straight through. */
 .lb-live {
   position: absolute;
+  /* left/bottom/max-width are set by JS, anchored to the photo's bottom-left */
   left: 16px;
-  right: 22%;
   bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   z-index: 2;
   display: flex;
@@ -823,11 +823,6 @@ body.lightbox-open .wrapper {
   font-style: italic;
   margin-right: 6px;
   color: #f7f3ee;
-}
-@media (max-width: 600px) {
-  .lb-live {
-    bottom: calc(138px + env(safe-area-inset-bottom, 0px));
-  }
 }
 
 /* "Tap for sound" pill over a muted-autoplay video */
