@@ -29,6 +29,19 @@ function writeGuard(req, res, next) {
 
 export const socialRouter = express.Router();
 
+// --- Seen tracking (per-guest NEW badges) ---
+// The lightbox reports each item it shows; idempotent, so re-views are free.
+socialRouter.post('/api/media/:id/seen', requireApi, (req, res) => {
+  if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'bad id' });
+  const exists = db.prepare('SELECT 1 FROM media WHERE id = ?').get(req.params.id);
+  if (!exists) return res.status(404).json({ error: 'not found' });
+  db.prepare('INSERT OR IGNORE INTO media_seen (media_id, guest_id) VALUES (?, ?)').run(
+    req.params.id,
+    req.guest.id,
+  );
+  res.status(204).end();
+});
+
 // --- Comments on a media item ---
 
 socialRouter.get('/api/media/:id/comments', requireApi, (req, res) => {

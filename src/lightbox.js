@@ -75,6 +75,7 @@ function build() {
         <button class="lb-delete btn-lb" hidden>Delete</button>
       </div>
     </div>
+    <div class="lb-live" aria-hidden="true"></div>
     <div class="lb-comments" aria-label="Comments">
       <div class="lb-comments-head">
         <strong>Comments</strong>
@@ -615,6 +616,7 @@ function show() {
   pinBtn.classList.toggle('active', !!item.pinned_at);
   pinBtn.setAttribute('aria-label', item.pinned_at ? 'Unpin' : 'Pin');
   updateFavBtn(item);
+  renderLive(item);
   setComments(false); // collapse panel on every item change
   // Lazy comments: show the count from the listing, but don't fetch the thread
   // until the panel is actually opened (fetching on every swipe janked mobile).
@@ -679,6 +681,7 @@ let commentsLoadedFor = null; // media id whose thread is currently loaded
 function setComments(open) {
   commentsOpen = open;
   overlay.querySelector('.lb-comments').classList.toggle('open', open);
+  overlay.classList.toggle('lb-panel-open', open); // hides the live overlay meanwhile
   if (open) {
     const id = list[idx]?.id;
     if (id && commentsLoadedFor !== id) loadComments(id); // fetch only on first open
@@ -706,14 +709,21 @@ async function loadComments(mediaId) {
 
 function renderComments() {
   overlay.querySelector('.lb-comment-n').textContent = comments.length || '';
-  if (list[idx]) list[idx].comment_count = comments.length; // keep badge/count honest
+  if (list[idx]) {
+    list[idx].comment_count = comments.length; // keep badge/count honest
+    // The loaded thread is the truth — refresh the overlay preview from it.
+    list[idx].comments_preview = comments
+      .slice(-3)
+      .map((c) => ({ guest_name: c.guest_name, body: c.body.slice(0, 140) }));
+    renderLive(list[idx]);
+  }
 
   const ul = overlay.querySelector('.lb-comments-list');
   ul.innerHTML = '';
   if (!comments.length) {
     const li = document.createElement('li');
     li.className = 'lb-comment-empty';
-    li.textContent = 'No comments yet — say something sweet ♥';
+    li.textContent = 'No comments yet — say something sassy ✨';
     ul.appendChild(li);
     return;
   }
@@ -772,6 +782,25 @@ async function deleteComment(id) {
   renderComments();
 }
 
+// Live overlay: the latest few comments over the photo, chat style. Renders
+// from listing data (comments_preview) — never fetches.
+function renderLive(item) {
+  const box = overlay.querySelector('.lb-live');
+  box.innerHTML = '';
+  for (const c of item?.comments_preview || []) {
+    const row = document.createElement('div');
+    row.className = 'lb-live-row';
+    const who = document.createElement('span');
+    who.className = 'lb-live-who';
+    who.textContent = c.guest_name;
+    const body = document.createElement('span');
+    body.className = 'lb-live-body';
+    body.textContent = c.body; // textContent → XSS-safe
+    row.append(who, body);
+    box.appendChild(row);
+  }
+}
+
 function updateFavBtn(item) {
   const btn = overlay.querySelector('.lb-fav');
   btn.classList.toggle('faved', !!item.faved);
@@ -816,8 +845,16 @@ async function togglePin() {
     alert('Could not update pin — try again.');
     return;
   }
-  close();
-  onPinned(); // gallery reloads with the new ordering
+  // Stay in the flow: flip the state locally, pop the button, keep swiping.
+  // The gallery reloads its pinned section when the lightbox closes.
+  item.pinned_at = pinned ? new Date().toISOString() : null;
+  const btn = overlay.querySelector('.lb-pin');
+  btn.classList.toggle('active', pinned);
+  btn.setAttribute('aria-label', pinned ? 'Unpin' : 'Pin');
+  btn.classList.remove('lb-pin-pop');
+  void btn.offsetWidth; // restart the animation on rapid toggles
+  btn.classList.add('lb-pin-pop');
+  onPinned(); // gallery marks itself dirty and reloads on close
 }
 
 function close() {

@@ -76,6 +76,34 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_reactions_media ON media_reactions(media_id);
 `);
 
+// Per-guest seen tracking: a thumbnail keeps its NEW badge for a guest until
+// they open the item in the lightbox.
+{
+  const existed = db
+    .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'media_seen'`)
+    .get();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS media_seen (
+      media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+      guest_id INTEGER NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
+      seen_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      PRIMARY KEY (media_id, guest_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_seen_guest ON media_seen(guest_id);
+  `);
+  if (!existed) {
+    // Grandfather: under the old time-based rule, items uploaded before a
+    // guest's last visit weren't "new" — keep them not-new under seen-tracking
+    // so nobody returns to a wall of NEW badges.
+    db.prepare(
+      `INSERT OR IGNORE INTO media_seen (media_id, guest_id)
+       SELECT m.id, g.id FROM media m
+       JOIN guests g ON g.last_seen_at IS NOT NULL AND m.uploaded_at <= g.last_seen_at
+       WHERE m.status = 'ready'`,
+    ).run();
+  }
+}
+
 // Comments on media + a shared guestbook of notes to the couple
 db.exec(`
   CREATE TABLE IF NOT EXISTS media_comments (

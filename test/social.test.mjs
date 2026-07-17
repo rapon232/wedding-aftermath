@@ -105,3 +105,30 @@ test('notes: empty rejected, auth required', async () => {
   assert.equal((await req(srv.base, 'POST', '/api/notes', { json: { body: 'x' } })).status, 401);
   assert.equal((await req(srv.base, 'GET', '/api/notes')).status, 401);
 });
+
+test('listing carries a bounded comments_preview (latest 3, oldest-first)', async () => {
+  const up = await uploadFile(srv.base, admin, await jpeg(230), 'preview.jpg', 'image/jpeg');
+  await waitReady(srv.base, admin, up.data.id);
+  const id = up.data.id;
+  for (const body of ['one', 'two', 'three', 'four']) {
+    await req(srv.base, 'POST', `/api/media/${id}/comments`, { cookie: guest, json: { body } });
+  }
+  const list = await req(srv.base, 'GET', '/api/media', { cookie: admin });
+  const item = list.data.items.find((i) => i.id === id);
+  assert.equal(item.comments_preview.length, 3, 'capped at the latest three');
+  assert.deepEqual(
+    item.comments_preview.map((c) => c.body),
+    ['two', 'three', 'four'],
+    'chat order: oldest of the latest three first',
+  );
+  assert.equal(item.comments_preview[0].guest_name, 'Commenter');
+  // items without comments still carry the (empty) field
+  const other = list.data.items.find((i) => i.id !== id);
+  if (other) assert.deepEqual(other.comments_preview, []);
+  // the pinned section carries previews too
+  await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, { cookie: admin, json: { pinned: true } });
+  const pinnedList = await req(srv.base, 'GET', '/api/media', { cookie: admin });
+  const copy = pinnedList.data.pinned.find((i) => i.id === id);
+  assert.equal(copy.comments_preview.length, 3);
+  await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, { cookie: admin, json: { pinned: false } });
+});

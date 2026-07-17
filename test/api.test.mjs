@@ -140,7 +140,7 @@ test('download: empty selection 400', async () => {
   assert.equal(r.status, 400);
 });
 
-test('pin: admin pins, item moves to pinned set and out of paged items', async () => {
+test('pin: pinned set gains a copy while the original stays in the paged stream', async () => {
   const list = await req(srv.base, 'GET', '/api/media?limit=1', { cookie: admin });
   const id = list.data.items[0].id;
   const pin = await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, {
@@ -153,7 +153,10 @@ test('pin: admin pins, item moves to pinned set and out of paged items', async (
     after.data.pinned.some((i) => i.id === id),
     'pinned set contains it',
   );
-  assert.ok(!after.data.items.some((i) => i.id === id), 'paged items exclude it');
+  assert.ok(
+    after.data.items.some((i) => i.id === id),
+    'original keeps its place in the paged stream',
+  );
   // unpin
   await req(srv.base, 'POST', `/api/admin/media/${id}/pin`, { cookie: admin, json: { pinned: false } });
   const restored = await req(srv.base, 'GET', '/api/media', { cookie: admin });

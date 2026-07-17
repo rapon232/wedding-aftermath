@@ -10,6 +10,7 @@ const items = []; // stable array identity — the lightbox holds this same refe
 let nextCursor = null;
 let loading = false;
 let loadGen = 0; // bumped on reload; in-flight loadPage bails if its generation is stale
+let pinnedDirty = false; // a pin/unpin happened in the lightbox — reload the grid on close
 let fmt; // time formatter
 let fmtDay; // day-header formatter
 let lastDayLabel = null; // tracks day-group boundaries during append
@@ -42,9 +43,17 @@ export function initGallery(user) {
     me,
     fmtDate: (iso) => fmt.format(new Date(iso)),
     onDeleted: removeItem,
-    onPinned: reload,
+    // Pinning no longer interrupts the lightbox — reload the grid on close.
+    onPinned: () => (pinnedDirty = true),
     onFaved: updateFavUi,
-    onNavigate: (item) => setHash(item?.id),
+    onNavigate: (item) => {
+      setHash(item?.id);
+      if (item) return markSeen(item);
+      if (pinnedDirty) {
+        pinnedDirty = false;
+        reload(); // lightbox just closed — bring the pinned section up to date
+      }
+    },
     onUploaderClick: (uploaderId) => {
       if (uploaderId == null) return;
       state.uploader = String(uploaderId);
@@ -420,7 +429,21 @@ function appendItems(newItems, grouped) {
 }
 
 function isNew(item) {
-  return me.lastSeen && item.uploaded_at > me.lastSeen && item.uploader_id !== me.id;
+  return !item.seen && item.uploader_id !== me.id;
+}
+
+// The lightbox showed this item — record it (idempotent per session) and clear
+// the NEW badge everywhere this id appears (pinned copy + original).
+const seenPosted = new Set();
+function markSeen(item) {
+  if (!item || item.uploader_id === me.id || seenPosted.has(item.id)) return;
+  seenPosted.add(item.id);
+  if (!item.seen) {
+    fetch(`/api/media/${item.id}/seen`, { method: 'POST' }).catch(() => {});
+  }
+  for (const it of items) if (it.id === item.id) it.seen = 1;
+  item.seen = 1;
+  for (const badge of grid().querySelectorAll(`.cell[data-id="${item.id}"] .cell-new`)) badge.remove();
 }
 
 function cell(item, index) {
@@ -505,10 +528,15 @@ async function toggleFavorite(item, favEl) {
 
 /** Keep the item model + its grid cell heart in sync (used by cell + lightbox callbacks). */
 function applyFav(item, faved, count) {
+  // A pinned item appears twice (copy + original) — sync every twin and cell.
+  for (const it of items) {
+    if (it.id !== item.id) continue;
+    it.faved = faved ? 1 : 0;
+    it.fav_count = Math.max(0, count || 0);
+  }
   item.faved = faved ? 1 : 0;
   item.fav_count = Math.max(0, count || 0);
-  const cellEl = grid().querySelector(`.cell[data-id="${item.id}"] .cell-fav`);
-  if (cellEl) {
+  for (const cellEl of grid().querySelectorAll(`.cell[data-id="${item.id}"] .cell-fav`)) {
     cellEl.classList.toggle('faved', !!faved);
     cellEl.classList.toggle('no-count', !item.fav_count);
     cellEl.querySelector('.cell-fav-n').textContent = item.fav_count || '';
@@ -525,9 +553,12 @@ function fmtDuration(s) {
 }
 
 function removeItem(id) {
-  const i = items.findIndex((x) => x.id === id);
-  const removed = i !== -1 ? items.splice(i, 1)[0] : null;
-  grid().querySelector(`[data-id="${id}"]`)?.remove();
+  // May appear twice (pinned copy + original) — drop every occurrence.
+  let removed = null;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (items[i].id === id) removed = items.splice(i, 1)[0];
+  }
+  for (const el of grid().querySelectorAll(`[data-id="${id}"]`)) el.remove();
   // Keep the live count honest.
   if (removed && totals[removed.type] != null) {
     totals[removed.type] = Math.max(0, totals[removed.type] - 1);
