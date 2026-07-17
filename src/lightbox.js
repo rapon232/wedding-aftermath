@@ -30,6 +30,7 @@ function cancelTap() {
   tapTimer = 0;
 }
 let suppressClicksUntil = 0; // set on mouse-drag release — that click is not a tap
+let liveEl = null; // comment overlay — lives inside the stage so it rides every stage move
 let readyToShare = null; // { id, file } downloaded but waiting for a fresh tap to share
 
 export function initLightbox(config) {
@@ -89,6 +90,7 @@ function build() {
     </div>
   `;
   document.body.appendChild(overlay);
+  liveEl = overlay.querySelector('.lb-live');
 
   overlay.querySelector('.lb-close').addEventListener('click', close);
   overlay.querySelector('.lb-prev').addEventListener('click', () => step(-1));
@@ -559,6 +561,9 @@ function show() {
   zoomed = false;
   const stage = overlay.querySelector('.lb-stage');
   stage.innerHTML = '';
+  // Inside the stage, the overlay inherits every stage move — the open
+  // animation and the swipe-down drag carry the comments with the photo.
+  stage.appendChild(liveEl);
 
   if (item.type === 'video') {
     const video = document.createElement('video');
@@ -621,6 +626,10 @@ function show() {
   pinBtn.classList.toggle('active', !!item.pinned_at);
   pinBtn.setAttribute('aria-label', item.pinned_at ? 'Unpin' : 'Pin');
   updateFavBtn(item);
+  // Keep the media clear of the caption bar: reserve the caption's real height
+  // (it varies with stacking + safe-area) so a tall photo's bottom corner stays
+  // visible — the comment overlay anchors to that corner.
+  stage.style.paddingBottom = `${overlay.querySelector('.lb-caption').offsetHeight + 10}px`;
   renderLive(item);
   setComments(false); // collapse panel on every item change
   // Lazy comments: show the count from the listing, but don't fetch the thread
@@ -794,6 +803,7 @@ async function deleteComment(id) {
 // stage fills the overlay, so offsets map straight to overlay coordinates.
 function placeLive(box) {
   const media = overlay.querySelector('.lb-stage img, .lb-stage video');
+  if (!box.isConnected) return; // video-fallback wiped the stage
   if (!media) return; // video-fallback card → keep the CSS default spot
   const mediaBottom = media.offsetTop + media.offsetHeight;
   const captionH = overlay.querySelector('.lb-caption').offsetHeight;
@@ -804,7 +814,7 @@ function placeLive(box) {
 }
 
 function renderLive(item) {
-  const box = overlay.querySelector('.lb-live');
+  const box = liveEl;
   box.innerHTML = '';
   const preview = item?.comments_preview || [];
   if (!preview.length) {
