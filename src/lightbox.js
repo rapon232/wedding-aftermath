@@ -807,9 +807,11 @@ function placeLive(box) {
   if (!media) return; // video-fallback card → keep the CSS default spot
   const mediaBottom = media.offsetTop + media.offsetHeight;
   const captionH = overlay.querySelector('.lb-caption').offsetHeight;
+  // Videos: lift by one comment line so the rows clear the native scrubber.
+  const lift = media.tagName === 'VIDEO' && box.firstChild ? box.firstChild.offsetHeight + 4 : 0;
   // Inside the photo, but never dipping into the caption bar.
   box.style.left = `${media.offsetLeft + 12}px`;
-  box.style.bottom = `${Math.max(overlay.clientHeight - mediaBottom + 12, captionH + 10)}px`;
+  box.style.bottom = `${Math.max(overlay.clientHeight - mediaBottom + 12 + lift, captionH + 10)}px`;
   box.style.maxWidth = `${Math.max(120, media.offsetWidth - 24)}px`;
 }
 
