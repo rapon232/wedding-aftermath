@@ -86,19 +86,33 @@ app.use(socialRouter);
 
 // Production: serve the built frontend. In dev, Vite serves pages and proxies /api here.
 if (fs.existsSync(config.distDir)) {
+  // HTML must revalidate on every visit (a stale shell references hashed assets
+  // that stop existing after a redeploy); hashed /assets/ files never change for
+  // a given name, so browsers and Cloudflare may cache them forever.
+  const noCache = { headers: { 'Cache-Control': 'no-cache' } };
   // Root serves the gallery when signed in, otherwise the login page — as a 200,
   // NOT a redirect, so link-preview scrapers (which often don't follow 302s) still
   // read the Open Graph tags on login.html.
   app.get(['/', '/index.html'], (req, res) => {
-    res.sendFile(path.join(config.distDir, req.guest ? 'index.html' : 'login.html'));
+    res.sendFile(path.join(config.distDir, req.guest ? 'index.html' : 'login.html'), noCache);
   });
   // Bare /favicon.ico (requested by browsers regardless of <link>) — serve the icon,
   // don't let it fall through to the auth gate and return HTML.
   app.get('/favicon.ico', (_req, res) => res.sendFile(path.join(config.distDir, 'favicon-32.png')));
-  app.use(express.static(config.distDir));
+  app.use(
+    express.static(config.distDir, {
+      setHeaders: (res, filePath) => {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (filePath.endsWith('.html')) {
+          res.set('Cache-Control', 'no-cache');
+        }
+      },
+    }),
+  );
   const gate = (req, res, next) => (req.guest ? next() : res.redirect('/login.html'));
   app.get(/^\/(?!api\/|media\/).*/, gate, (_req, res) => {
-    res.sendFile(path.join(config.distDir, 'index.html'));
+    res.sendFile(path.join(config.distDir, 'index.html'), noCache);
   });
 }
 

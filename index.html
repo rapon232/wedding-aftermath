@@ -26,6 +26,45 @@
     <meta name="twitter:image" content="https://aftermath.mitio.tech/og-image.jpg" />
     <link rel="stylesheet" href="/fonts/fonts.css" />
     <link rel="stylesheet" href="/src/style.css" />
+    <script>
+      // Self-heal a stale shell: if the hashed CSS/JS this page references are
+      // gone (a redeploy replaced them) the page renders bare and Safari never
+      // retries — reload once to fetch fresh HTML. A sessionStorage flag stops
+      // a genuinely-down site from reload-looping; it re-arms on a good load.
+      (function () {
+        var KEY = 'shell-reloaded';
+        function recover() {
+          try {
+            if (sessionStorage.getItem(KEY)) return;
+            sessionStorage.setItem(KEY, '1');
+          } catch (e) {}
+          location.reload();
+        }
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target;
+            if (!t || !t.tagName) return;
+            var url = t.href || t.src || '';
+            if ((t.tagName === 'LINK' || t.tagName === 'SCRIPT') && url.indexOf('/assets/') !== -1) recover();
+          },
+          true, // resource load errors don't bubble; they are visible in the capture phase
+        );
+        window.addEventListener('load', function () {
+          // Belt-and-suspenders for resumed tabs where the error event predates the
+          // listener. Only meaningful on built pages (dev serves no /assets/ link).
+          var link = document.querySelector('link[rel="stylesheet"][href*="/assets/"]');
+          if (!link) return;
+          if (link.sheet && link.sheet.cssRules.length) {
+            try {
+              sessionStorage.removeItem(KEY);
+            } catch (e) {}
+          } else {
+            recover();
+          }
+        });
+      })();
+    </script>
   </head>
   <body>
     <div class="wrapper">

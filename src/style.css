@@ -455,6 +455,23 @@ body.selecting .cell.selected img {
   overflow: hidden;
   cursor: pointer;
 }
+/* "You were here" pulse when the lightbox closes and re-centers the grid. */
+.cell-return {
+  animation: cell-return-pulse 1.2s ease-out;
+}
+@keyframes cell-return-pulse {
+  0%,
+  35% {
+    box-shadow:
+      0 0 0 3px var(--bordeaux-light),
+      0 0 22px 2px rgba(176, 85, 117, 0.55);
+  }
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(176, 85, 117, 0),
+      0 0 22px 2px rgba(176, 85, 117, 0);
+  }
+}
 .cell img {
   width: 100%;
   height: 100%;

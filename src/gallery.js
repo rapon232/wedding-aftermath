@@ -11,6 +11,7 @@ let nextCursor = null;
 let loading = false;
 let loadGen = 0; // bumped on reload; in-flight loadPage bails if its generation is stale
 let pinnedDirty = false; // a pin/unpin happened in the lightbox — reload the grid on close
+let returnId = null; // item to re-center after the close-triggered reload settles
 let fmt; // time formatter
 let fmtDay; // day-header formatter
 let lastDayLabel = null; // tracks day-group boundaries during append
@@ -46,12 +47,24 @@ export function initGallery(user) {
     // Pinning no longer interrupts the lightbox — reload the grid on close.
     onPinned: () => (pinnedDirty = true),
     onFaved: updateFavUi,
+    // Land the guest on the item they left off at, centered — they may have
+    // swiped hundreds of photos past where they opened the lightbox.
+    onClosed: (item) => {
+      if (!item) return;
+      if (pinnedDirty)
+        returnId = item.id; // grid is about to reload — center after it settles
+      else returnToTile(item.id);
+    },
     onNavigate: (item) => {
       setHash(item?.id);
       if (item) return markSeen(item);
       if (pinnedDirty) {
         pinnedDirty = false;
-        reload(); // lightbox just closed — bring the pinned section up to date
+        const id = returnId;
+        returnId = null;
+        // Lightbox just closed — bring the pinned section up to date, then
+        // page forward until the guest's item is back on screen.
+        reload().then(() => returnAfterReload(id));
       }
     },
     onUploaderClick: (uploaderId) => {
@@ -145,7 +158,33 @@ export function reload() {
   grid().innerHTML = '';
   setEmpty('Loading…');
   loadUploaders(); // new uploaders (incl. you) show up in the filter without a refresh
-  loadPage(true);
+  return loadPage(true);
+}
+
+// Center the grid tile for `id` in the viewport and pulse it so the eye lands
+// there. Pinned items render twice (featured copy first, in-place copy later in
+// the chronological flow) — the last match is the one matching browsing order.
+function returnToTile(id) {
+  const cells = grid().querySelectorAll(`.cell[data-id="${id}"]`);
+  const el = cells[cells.length - 1];
+  if (!el) return false; // deleted item or single-item deep-link view — nothing to return to
+  el.scrollIntoView({ block: 'center' }); // instant: the jump lands before the gallery repaints
+  el.classList.add('cell-return');
+  el.addEventListener('animationend', () => el.classList.remove('cell-return'), { once: true });
+  return true;
+}
+
+// After a close-triggered reload the target may be pages deep — keep loading
+// until its tile exists, bounded so a miss can't fetch the whole gallery.
+async function returnAfterReload(id) {
+  if (!id) return;
+  const gen = loadGen; // a user-initiated reload mid-hunt abandons the scroll
+  for (let i = 0; i < 10; i++) {
+    if (gen !== loadGen) return;
+    if (returnToTile(id)) return;
+    if (!nextCursor) return; // exhausted: stay at the top, same as before this feature
+    await loadPage();
+  }
 }
 
 function readStateFromUrl() {

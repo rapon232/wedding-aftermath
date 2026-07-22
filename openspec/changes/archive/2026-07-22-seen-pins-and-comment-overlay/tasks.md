@@ -29,4 +29,4 @@
 ## 5. Verification
 
 - [x] 5.1 `npm test`, `npm run build`, `npm run format:check` green; extend the mobile smoke: NEW badge clears after lightbox view, pin keeps the lightbox open with button state change, overlay visible with preview data / hidden in immersive, gestures unaffected over the overlay
-- [ ] 5.2 On-device pass (iPhone): badges persist across reload until viewed, pin lerp feel, overlay legibility over bright photos
+- [x] 5.2 On-device pass (iPhone): badges persist across reload until viewed, pin lerp feel, overlay legibility over bright photos — verified through a week of daily real-world use on the live site

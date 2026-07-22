@@ -8,6 +8,7 @@ let onPinned = () => {};
 let onFaved = () => {};
 let onNavigate = () => {};
 let onUploaderClick = () => {};
+let onClosed = () => {};
 let list = [];
 let idx = 0;
 let opts = {};
@@ -41,6 +42,7 @@ export function initLightbox(config) {
   onFaved = config.onFaved || (() => {});
   onNavigate = config.onNavigate || (() => {});
   onUploaderClick = config.onUploaderClick || (() => {});
+  onClosed = config.onClosed || (() => {});
 }
 
 export function openLightbox(items, index, o = {}) {
@@ -909,5 +911,9 @@ function close() {
   overlay.querySelector('.lb-stage').innerHTML = ''; // stops video playback
   document.body.classList.remove('lightbox-open');
   setComments(false);
+  // After the body scroll-lock drops (scrolling is a no-op while overflow is
+  // hidden), let the gallery re-center on the item we left off at — before
+  // onNavigate(null), which may kick off the pinned-dirty grid reload.
+  onClosed(list[idx] || null);
   onNavigate(null); // clear the #photo deep-link
 }
