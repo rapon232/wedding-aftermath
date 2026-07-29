@@ -9,6 +9,12 @@ let onFaved = () => {};
 let onNavigate = () => {};
 let onUploaderClick = () => {};
 let onClosed = () => {};
+let onRotated = () => {};
+
+// Formats the server can rewrite in place; HEIC/GIF originals can't be rotated.
+const ROTATABLE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp']);
+// Rotations bump item.rev — bust the immutable media caches with it.
+const rev = (item) => (item.rev ? `?v=${item.rev}` : '');
 let list = [];
 let idx = 0;
 let opts = {};
@@ -43,6 +49,7 @@ export function initLightbox(config) {
   onNavigate = config.onNavigate || (() => {});
   onUploaderClick = config.onUploaderClick || (() => {});
   onClosed = config.onClosed || (() => {});
+  onRotated = config.onRotated || (() => {});
 }
 
 export function openLightbox(items, index, o = {}) {
@@ -74,6 +81,7 @@ function build() {
         <button class="lb-fav btn-lb" aria-label="Favorite"><svg class="lb-fav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="lb-fav-n"></span></button>
         <button class="lb-comment btn-lb" aria-label="Comments"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span class="lb-comment-n"></span></button>
         <button class="lb-pin btn-lb" aria-label="Pin" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg></button>
+        <button class="lb-rotate btn-lb" aria-label="Rotate" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
         <a class="lb-download btn-lb" download>Save</a>
         <button class="lb-delete btn-lb" hidden>Delete</button>
       </div>
@@ -99,6 +107,7 @@ function build() {
   overlay.querySelector('.lb-next').addEventListener('click', () => step(1));
   overlay.querySelector('.lb-delete').addEventListener('click', del);
   overlay.querySelector('.lb-pin').addEventListener('click', togglePin);
+  overlay.querySelector('.lb-rotate').addEventListener('click', rotate);
   overlay.querySelector('.lb-fav').addEventListener('click', toggleFav);
   overlay.querySelector('.lb-by').addEventListener('click', () => {
     const it = list[idx];
@@ -154,7 +163,7 @@ function build() {
         file = readyToShare.file; // downloaded already — this tap is the fresh gesture
       } else {
         showPie(false); // spinner until the first sized progress event
-        const blob = await fetchBlob(`/media/file/${item.id}`);
+        const blob = await fetchBlob(`/media/file/${item.id}${rev(item)}`);
         file = new File([blob], item.filename, { type: blob.type });
       }
       readyToShare = null;
@@ -608,7 +617,8 @@ function show() {
   } else {
     const img = document.createElement('img');
     // Animated GIFs lose animation in the static preview — show the original
-    img.src = item.ext === 'gif' ? `/media/file/${item.id}` : `/media/preview/${item.id}`;
+    img.src =
+      item.ext === 'gif' ? `/media/file/${item.id}${rev(item)}` : `/media/preview/${item.id}${rev(item)}`;
     img.alt = item.filename;
     stage.appendChild(img);
     setupZoom(img);
@@ -617,7 +627,7 @@ function show() {
   overlay.querySelector('.lb-by').textContent = `by ${item.uploader_name}`;
   overlay.querySelector('.lb-date').textContent = item.taken_at ? fmtDate(item.taken_at) : '';
   const dlBtn = overlay.querySelector('.lb-download');
-  dlBtn.href = `/media/file/${item.id}?download=1`;
+  dlBtn.href = `/media/file/${item.id}?download=1${item.rev ? `&v=${item.rev}` : ''}`;
   // New item: a held share-file or "Tap to save" label no longer applies
   // (but never wipe the pie of a download still in flight).
   readyToShare = null;
@@ -627,6 +637,9 @@ function show() {
   pinBtn.hidden = !me.isAdmin;
   pinBtn.classList.toggle('active', !!item.pinned_at);
   pinBtn.setAttribute('aria-label', item.pinned_at ? 'Unpin' : 'Pin');
+  const rotBtn = overlay.querySelector('.lb-rotate');
+  rotBtn.hidden = !(me.isAdmin && item.type === 'photo' && ROTATABLE_EXT.has(item.ext));
+  rotBtn.disabled = false;
   updateFavBtn(item);
   // Keep the media clear of the caption bar: reserve the caption's real height
   // (it varies with stacking + safe-area) so a tall photo's bottom corner stays
@@ -649,7 +662,7 @@ function show() {
   // Preload neighbouring photo previews for instant navigation
   for (const n of [idx - 1, idx + 1]) {
     const nb = list[n];
-    if (nb && nb.type === 'photo') new Image().src = `/media/preview/${nb.id}`;
+    if (nb && nb.type === 'photo') new Image().src = `/media/preview/${nb.id}${rev(nb)}`;
   }
   // Nearing the end of loaded items: pull the next page in
   if (idx >= list.length - 5) opts.loadMore?.();
@@ -880,6 +893,26 @@ async function toggleFav() {
   }
   updateFavBtn(item);
   onFaved(item);
+}
+
+async function rotate() {
+  const item = list[idx];
+  const btn = overlay.querySelector('.lb-rotate');
+  if (btn.disabled) return;
+  btn.disabled = true; // spinner via CSS; also blocks double-taps mid-rewrite
+  try {
+    const r = await fetch(`/api/admin/media/${item.id}/rotate`, { method: 'POST' });
+    if (!r.ok) throw new Error('rotate failed');
+    const d = await r.json();
+    item.width = d.width;
+    item.height = d.height;
+    item.rev = d.rev;
+    show(); // re-renders the stage with the cache-busted, rotated preview
+    onRotated(item); // gallery swaps this item's grid thumbnails
+  } catch {
+    alert('Could not rotate — try again.');
+    btn.disabled = false;
+  }
 }
 
 async function togglePin() {

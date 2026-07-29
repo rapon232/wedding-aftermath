@@ -57,6 +57,8 @@ ensureColumn('media', 'height', 'height INTEGER');
 ensureColumn('media', 'duration_s', 'duration_s REAL');
 ensureColumn('media', 'pinned_at', 'pinned_at TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_media_pinned ON media(pinned_at)');
+// Bumped on permanent edits (admin rotate) — clients append ?v=<rev> to bust immutable caches.
+ensureColumn('media', 'rev', 'rev INTEGER NOT NULL DEFAULT 0');
 
 // "New since your last visit" — updated after each gallery load (group 11.1)
 ensureColumn('guests', 'last_seen_at', 'last_seen_at TEXT');

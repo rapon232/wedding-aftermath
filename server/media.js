@@ -7,7 +7,8 @@ import path from 'path';
 import { db } from './db.js';
 import { config, dirs } from './config.js';
 import { requireApi, requireAdmin } from './auth.js';
-import { enqueue } from './processing.js';
+import sharp from 'sharp';
+import { enqueue, photoRenditions } from './processing.js';
 import { broadcast } from './events.js';
 
 const PHOTO_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif']);
@@ -281,12 +282,54 @@ mediaRouter.get('/api/media/:id', requireApi, (req, res) => {
   const m = db
     .prepare(
       `SELECT m.id, m.type, m.status, m.filename, m.size, m.taken_at, m.uploaded_at,
-              m.width, m.height, m.duration_s, m.pinned_at, m.uploader_id, g.name AS uploader_name
+              m.width, m.height, m.duration_s, m.pinned_at, m.rev, m.uploader_id, g.name AS uploader_name
        FROM media m JOIN guests g ON g.id = m.uploader_id WHERE m.id = ?`,
     )
     .get(req.params.id);
   if (!m) return res.status(404).json({ error: 'not found' });
   res.json(m);
+});
+
+// --- Rotate (admin only): permanently quarter-turn a photo clockwise ---
+
+const ROTATABLE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp']); // sharp can re-encode these; HEIC (no encoder) and GIF (animation) can't be rewritten in place
+
+mediaRouter.post('/api/admin/media/:id/rotate', requireAdmin, async (req, res) => {
+  if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'bad id' });
+  const m = db.prepare('SELECT id, ext, type, status FROM media WHERE id = ?').get(req.params.id);
+  if (!m) return res.status(404).json({ error: 'not found' });
+  if (m.type !== 'photo' || m.status !== 'ready' || !ROTATABLE_EXT.has(m.ext)) {
+    return res.status(400).json({ error: 'this item cannot be rotated' });
+  }
+  const p = path.join(dirs.originals, `${m.id}.${m.ext}`);
+  if (!fs.existsSync(p)) return res.status(404).json({ error: 'original missing' });
+  const tmp = `${p}.rotate-tmp`;
+  try {
+    // Two passes: bake any EXIF orientation into pixels first, then the
+    // quarter-turn — one rotate(angle) call would ignore the EXIF tag.
+    const baked = await sharp(p, { failOn: 'none' }).rotate().withMetadata().toBuffer();
+    let out = sharp(baked).rotate(90).withMetadata();
+    out =
+      m.ext === 'png'
+        ? out.png()
+        : m.ext === 'webp'
+          ? out.webp({ quality: 92 })
+          : out.jpeg({ quality: 92, mozjpeg: true });
+    await out.toFile(tmp);
+    fs.renameSync(tmp, p); // swap in atomically; a crash before this leaves the original untouched
+    const dims = await photoRenditions(p, m.id); // thumb + preview regenerate from the rotated file
+    const row = db
+      .prepare(
+        `UPDATE media SET width = ?, height = ?, size = ?, rev = rev + 1 WHERE id = ?
+         RETURNING width, height, rev`,
+      )
+      .get(dims.width, dims.height, fs.statSync(p).size, m.id);
+    res.json({ ok: true, ...row });
+  } catch (err) {
+    fs.rmSync(tmp, { force: true });
+    console.error(`rotate failed for ${m.id}:`, err.message);
+    res.status(500).json({ error: 'rotate failed' });
+  }
 });
 
 // --- Pin / unpin (admin only): pinned media surfaces at the top for everyone ---

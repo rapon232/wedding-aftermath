@@ -55,6 +55,12 @@ export function initGallery(user) {
         returnId = item.id; // grid is about to reload — center after it settles
       else returnToTile(item.id);
     },
+    // A rotation changed the pixels behind this id — swap every grid copy's thumb.
+    onRotated: (item) => {
+      for (const img of grid().querySelectorAll(`.cell[data-id="${item.id}"] img`)) {
+        img.src = `/media/thumb/${item.id}?v=${item.rev}`;
+      }
+    },
     onNavigate: (item) => {
       setHash(item?.id);
       if (item) return markSeen(item);
@@ -426,18 +432,22 @@ function setEmpty(text) {
   el.textContent = text;
 }
 
-// The wedding weekend's day names (interpreted in event tz).
+// The wedding weekend's exact dates (interpreted in event tz) — any other
+// Thursday/Friday/Saturday is just a regular day.
 const EVENT_DAYS = {
-  Thursday: ' · 🕊️ White Dinner Day',
-  Friday: ' · 💍 Wedding Day',
-  Saturday: ' · ✨ Pool Day',
+  '2026-07-09': ' · 🕊️ White Dinner Day',
+  '2026-07-10': ' · 💍 Wedding Day',
+  '2026-07-11': ' · ✨ Pool Day',
 };
 function eventLabel(iso) {
-  const weekday = new Intl.DateTimeFormat('en-US', {
+  // en-CA formats as YYYY-MM-DD; event tz keeps late-night photos on their local day.
+  const day = new Intl.DateTimeFormat('en-CA', {
     timeZone: me.eventTz || 'Europe/Rome',
-    weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(new Date(iso));
-  return EVENT_DAYS[weekday] || '';
+  return EVENT_DAYS[day] || '';
 }
 
 function addSectionHeader(text) {
@@ -508,7 +518,7 @@ function cell(item, index) {
   // Skeleton shimmer until the thumbnail decodes, then fade it in (12.3/12.5).
   img.addEventListener('load', () => btn.classList.add('loaded'), { once: true });
   img.addEventListener('error', () => btn.classList.add('loaded'), { once: true });
-  img.src = `/media/thumb/${item.id}`;
+  img.src = `/media/thumb/${item.id}${item.rev ? `?v=${item.rev}` : ''}`;
   btn.appendChild(img);
 
   if (item.type === 'video' && item.duration_s) {

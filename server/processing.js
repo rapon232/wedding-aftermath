@@ -62,7 +62,7 @@ async function processMedia(id) {
 }
 
 /** Shared photo pipeline: input may be a file path or a decoded buffer (HEIC fallback). */
-async function photoRenditions(input, id) {
+export async function photoRenditions(input, id) {
   const base = sharp(input, { failOn: 'none' }).rotate(); // rotate() bakes in EXIF orientation
   const meta = await base.metadata();
   await base

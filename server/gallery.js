@@ -77,7 +77,7 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
   // NB: the faved and seen subqueries each introduce a leading `?` (the current
   // guest id), so guest id is always the first two bound parameters.
   const cols = `m.id, m.type, m.ext, m.filename, m.size, m.taken_at, m.uploaded_at,
-                m.width, m.height, m.duration_s, m.pinned_at, m.uploader_id, g.name AS uploader_name,
+                m.width, m.height, m.duration_s, m.pinned_at, m.rev, m.uploader_id, g.name AS uploader_name,
                 (SELECT COUNT(*) FROM media_reactions r WHERE r.media_id = m.id) AS fav_count,
                 (SELECT COUNT(*) FROM media_comments c WHERE c.media_id = m.id) AS comment_count,
                 EXISTS(SELECT 1 FROM media_reactions r WHERE r.media_id = m.id AND r.guest_id = ?) AS faved,

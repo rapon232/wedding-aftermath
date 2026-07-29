@@ -755,6 +755,15 @@ body.lightbox-open .wrapper {
 .btn-lb:hover {
   background: rgba(247, 243, 238, 0.24);
 }
+/* Rotate in flight: spin the icon until the rotated preview re-renders. */
+.lb-rotate:disabled svg {
+  animation: lb-rotate-spin 0.8s linear infinite;
+}
+@keyframes lb-rotate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .lb-delete {
   color: #ffb3c1;
 }
