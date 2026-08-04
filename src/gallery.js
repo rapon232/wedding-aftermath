@@ -663,9 +663,21 @@ function renderCount() {
 function showNewBanner(n) {
   const bar = document.getElementById('newBanner');
   if (!bar) return;
-  bar.textContent = `✨ ${n} new ${n === 1 ? 'memory' : 'memories'} since your last visit`;
+  bar.textContent = `✨ ${n} new ${n === 1 ? 'memory' : 'memories'} since your last visit — tap to see`;
   bar.hidden = false;
-  bar.addEventListener('click', () => (bar.hidden = true), { once: true });
+  // Tapping jumps to the "Recently uploaded" view, where the new stuff is on top.
+  bar.addEventListener(
+    'click',
+    () => {
+      bar.hidden = true;
+      state.sort = 'uploaded-desc';
+      document.getElementById('sortSel').value = 'uploaded-desc';
+      syncUrl();
+      updateClearBtn();
+      reload();
+    },
+    { once: true },
+  );
 }
 
 // --- Deep links: /#photo=<id> opens straight into the lightbox ---
