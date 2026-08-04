@@ -11,8 +11,8 @@ let onUploaderClick = () => {};
 let onClosed = () => {};
 let onRotated = () => {};
 
-// Formats the server can rewrite in place; HEIC/GIF originals can't be rotated.
-const ROTATABLE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp']);
+// Formats the server can rotate (HEICs come back as JPEGs); GIFs would lose animation.
+const ROTATABLE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']);
 // Rotations bump item.rev — bust the immutable media caches with it.
 const rev = (item) => (item.rev ? `?v=${item.rev}` : '');
 let list = [];
@@ -907,6 +907,8 @@ async function rotate() {
     item.width = d.width;
     item.height = d.height;
     item.rev = d.rev;
+    item.ext = d.ext; // HEICs convert to JPEG on rotate
+    item.filename = d.filename;
     show(); // re-renders the stage with the cache-busted, rotated preview
     onRotated(item); // gallery swaps this item's grid thumbnails
   } catch {

@@ -292,38 +292,59 @@ mediaRouter.get('/api/media/:id', requireApi, (req, res) => {
 
 // --- Rotate (admin only): permanently quarter-turn a photo clockwise ---
 
-const ROTATABLE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp']); // sharp can re-encode these; HEIC (no encoder) and GIF (animation) can't be rewritten in place
+// sharp can re-encode these in place; HEIC has no encoder (patented HEVC), so a
+// rotated HEIC is converted to a high-quality JPEG instead. GIF stays excluded
+// (rotation would flatten the animation).
+const ROTATABLE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']);
 
 mediaRouter.post('/api/admin/media/:id/rotate', requireAdmin, async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'bad id' });
-  const m = db.prepare('SELECT id, ext, type, status FROM media WHERE id = ?').get(req.params.id);
+  const m = db.prepare('SELECT id, ext, type, status, filename FROM media WHERE id = ?').get(req.params.id);
   if (!m) return res.status(404).json({ error: 'not found' });
   if (m.type !== 'photo' || m.status !== 'ready' || !ROTATABLE_EXT.has(m.ext)) {
     return res.status(400).json({ error: 'this item cannot be rotated' });
   }
   const p = path.join(dirs.originals, `${m.id}.${m.ext}`);
   if (!fs.existsSync(p)) return res.status(404).json({ error: 'original missing' });
-  const tmp = `${p}.rotate-tmp`;
+  const isHeic = /^hei[cf]$/.test(m.ext);
+  const targetExt = isHeic ? 'jpg' : m.ext;
+  const dest = path.join(dirs.originals, `${m.id}.${targetExt}`);
+  const tmp = `${dest}.rotate-tmp`;
   try {
     // Two passes: bake any EXIF orientation into pixels first, then the
     // quarter-turn — one rotate(angle) call would ignore the EXIF tag.
-    const baked = await sharp(p, { failOn: 'none' }).rotate().withMetadata().toBuffer();
+    let baked;
+    try {
+      let pass1 = sharp(p, { failOn: 'none' }).rotate().withMetadata();
+      if (isHeic) pass1 = pass1.jpeg({ quality: 92, mozjpeg: true }); // can't write heif back
+      baked = await pass1.toBuffer();
+    } catch (err) {
+      if (!isHeic) throw err;
+      // Same pure-JS fallback (and size cap) as the processing pipeline, for
+      // HEICs whose HEVC stream sharp's libvips can't decode.
+      const HEIC_FALLBACK_MAX = Number(process.env.HEIC_FALLBACK_MAX_BYTES) || 48 * 1024 * 1024;
+      if (fs.statSync(p).size > HEIC_FALLBACK_MAX) throw err;
+      const { default: heicConvert } = await import('heic-convert');
+      baked = Buffer.from(await heicConvert({ buffer: fs.readFileSync(p), format: 'JPEG', quality: 0.92 }));
+    }
     let out = sharp(baked).rotate(90).withMetadata();
     out =
-      m.ext === 'png'
+      targetExt === 'png'
         ? out.png()
-        : m.ext === 'webp'
+        : targetExt === 'webp'
           ? out.webp({ quality: 92 })
           : out.jpeg({ quality: 92, mozjpeg: true });
     await out.toFile(tmp);
-    fs.renameSync(tmp, p); // swap in atomically; a crash before this leaves the original untouched
-    const dims = await photoRenditions(p, m.id); // thumb + preview regenerate from the rotated file
+    fs.renameSync(tmp, dest); // swap in atomically; a crash before this leaves the original untouched
+    if (dest !== p) fs.rmSync(p, { force: true }); // drop the old .heic once the .jpg is in place
+    const dims = await photoRenditions(dest, m.id); // thumb + preview regenerate from the rotated file
+    const newFilename = isHeic ? m.filename.replace(/\.[^.]*$/, '.jpg') : m.filename;
     const row = db
       .prepare(
-        `UPDATE media SET width = ?, height = ?, size = ?, rev = rev + 1 WHERE id = ?
-         RETURNING width, height, rev`,
+        `UPDATE media SET width = ?, height = ?, size = ?, ext = ?, filename = ?, rev = rev + 1
+         WHERE id = ? RETURNING width, height, rev, ext, filename`,
       )
-      .get(dims.width, dims.height, fs.statSync(p).size, m.id);
+      .get(dims.width, dims.height, fs.statSync(dest).size, targetExt, newFilename, m.id);
     res.json({ ok: true, ...row });
   } catch (err) {
     fs.rmSync(tmp, { force: true });

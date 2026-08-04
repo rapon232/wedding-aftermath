@@ -9,7 +9,7 @@ Some uploaded photos display sideways (wrong or missing EXIF orientation, screen
 - A single rotate button in the lightbox, visible to admins only, on photos only: each tap rotates the image 90° clockwise, permanently — the original file is rewritten and the thumbnail/preview renditions regenerate.
 - New admin endpoint `POST /api/admin/media/:id/rotate`.
 - A `rev` counter on media rows busts the immutable browser cache on thumb/preview/file URLs after a rotation.
-- Formats sharp can re-encode are rotatable (jpg/jpeg/png/webp); HEIC and GIF originals are excluded (no encoder / animation), the button hides for them.
+- JPEG/PNG/WebP originals are rewritten in place. HEIC originals (no HEVC encoder available) are converted to a quality-92 JPEG as part of the rotation — permanent format change, flagged in design. GIF stays excluded (rotation would flatten the animation).
 
 ## Capabilities
 

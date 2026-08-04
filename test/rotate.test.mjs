@@ -31,6 +31,8 @@ test('rotate swaps dimensions, bumps rev, and is repeatable to a full turn', asy
   assert.equal(r1.data.rev, 1);
   assert.equal(r1.data.width, beforeItem.height, 'width and height should swap');
   assert.equal(r1.data.height, beforeItem.width);
+  assert.equal(r1.data.ext, 'jpg', 'non-HEIC keeps its format');
+  assert.equal(r1.data.filename, 'sideways.jpg', 'filename unchanged for non-HEIC');
 
   // Renditions regenerated and dimensions persisted.
   const mid = (await req(srv.base, 'GET', `/api/media/${photoId}`, { cookie: admin })).data;

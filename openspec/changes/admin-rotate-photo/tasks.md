@@ -7,6 +7,8 @@
 - [x] 1.3 `server/media.js`: `POST /api/admin/media/:id/rotate` — eligibility checks (photo, ready, jpg/jpeg/png/webp), two-pass sharp rewrite to temp + rename, regenerate renditions, update width/height/size and bump rev, return `{ok, width, height, rev}`
 - [x] 1.4 `server/gallery.js` + `server/media.js`: include `m.rev` in the listing and single-item SELECTs
 
+- [x] 1.5 HEIC support: rotating a `.heic/.heif` decodes it (sharp, falling back to heic-convert with the pipeline's size cap), re-encodes as quality-92 JPEG, replaces the original file, and updates `ext`/`filename`; response returns the new `ext`/`filename` and the client applies them
+
 ## 2. Client
 
 - [x] 2.1 `src/lightbox.js`: rotate button (admin-only, eligible photos only) next to pin; handler POSTs, mutates item, re-renders stage, fires `onRotated`
