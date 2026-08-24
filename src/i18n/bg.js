@@ -193,6 +193,7 @@ export default {
     importFailed: 'Импортът се провали',
     importedGuests: (n, skipped) => `Импортирани: ${n}${skipped ? `, пропуснати: ${skipped}` : ''}`,
     copiedList: 'Списъкът е копиран',
+    language: 'Език',
     confirmDeleteGuest: (name) => `Да изтрия ли ${name} завинаги? Действието е необратимо.`,
     deletedGuest: (name) => `${name} е изтрит`,
     clickToRename: 'Натисни за преименуване',

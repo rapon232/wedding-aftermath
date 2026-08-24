@@ -1,7 +1,7 @@
 // Language switcher. Both site builds ship in every image; picking a language
 // sets a `lang` cookie and reloads — the server then serves that build. The
 // current language is whichever build we're viewing (SITE.site).
-import SITE from './site.js';
+import SITE, { t } from './site.js';
 
 const LANGS = [
   { code: 'en', label: 'EN' },
@@ -19,7 +19,9 @@ export function initLangSwitcher(mount) {
   btn.className = 'lang-btn';
   btn.setAttribute('aria-haspopup', 'true');
   btn.setAttribute('aria-expanded', 'false');
-  btn.innerHTML = `${GLOBE}<span>${cur.toUpperCase()}</span>`;
+  btn.setAttribute('aria-label', t.language);
+  btn.title = t.language;
+  btn.innerHTML = GLOBE; // globe only — the menu makes the current language clear
 
   const menu = document.createElement('div');
   menu.className = 'lang-menu';

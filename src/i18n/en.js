@@ -193,6 +193,7 @@ export default {
     importedGuests: (n, skipped) =>
       `Imported ${n} guest${n === 1 ? '' : 's'}${skipped ? `, skipped ${skipped}` : ''}`,
     copiedList: 'Copied full list',
+    language: 'Language',
     confirmDeleteGuest: (name) => `Permanently delete ${name}? This cannot be undone.`,
     deletedGuest: (name) => `Deleted ${name}`,
     clickToRename: 'Click to rename',

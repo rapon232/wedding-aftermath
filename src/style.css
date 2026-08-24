@@ -122,27 +122,25 @@ h1 em {
 .lang-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  justify-content: center;
   color: var(--text-muted);
   background: transparent;
-  border: 1.5px solid var(--cream-mid);
-  border-radius: 100px;
-  padding: 6px 12px;
+  border: none;
+  border-radius: 50%;
+  padding: 6px;
   cursor: pointer;
-  transition: all 0.15s;
+  opacity: 0.6; /* quiet by default so it doesn't pull focus from the actions */
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 .lang-btn:hover {
-  border-color: var(--mint);
+  opacity: 1;
   color: var(--mint-dark);
-  background: var(--mint-pale);
 }
 .lang-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 .lang-menu {
   position: absolute;
