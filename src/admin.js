@@ -96,6 +96,20 @@ function row(g) {
 
   const nameTd = document.createElement('td');
   nameTd.textContent = g.name + (g.is_admin ? ' ★' : '');
+  nameTd.title = t.clickToRename;
+  nameTd.style.cursor = 'pointer';
+  nameTd.addEventListener('click', async () => {
+    const next = prompt(t.renamePrompt, g.name);
+    if (next == null || !next.trim() || next.trim() === g.name) return;
+    const r = await fetch(`/api/admin/guests/${g.id}/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: next.trim() }),
+    });
+    const d = await r.json().catch(() => ({}));
+    flash(r.ok ? t.renamedGuest(d.name) : d.error || t.actionFailed);
+    refresh();
+  });
 
   const emailTd = document.createElement('td');
   emailTd.className = 'admin-email';

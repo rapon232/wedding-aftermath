@@ -99,6 +99,7 @@ export default {
     errPin: 'Неуспешно закачане — опитай пак.',
     errRotate: 'Неуспешно завъртане — опитай пак.',
     errComment: 'Коментарът не се изпрати — опитай пак.',
+    tapForSound: 'Натисни за звук',
     videoFallback: 'Видеото не може да се пусне в браузъра — но можеш да го запазиш.',
     downloadVideo: 'Свали видеото',
 
@@ -194,5 +195,8 @@ export default {
     copiedList: 'Списъкът е копиран',
     confirmDeleteGuest: (name) => `Да изтрия ли ${name} завинаги? Действието е необратимо.`,
     deletedGuest: (name) => `${name} е изтрит`,
+    clickToRename: 'Натисни за преименуване',
+    renamePrompt: 'Ново име:',
+    renamedGuest: (name) => `Преименуван на ${name}`,
   },
 };

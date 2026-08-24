@@ -98,6 +98,7 @@ export default {
     errPin: 'Could not update pin — try again.',
     errRotate: 'Could not rotate — try again.',
     errComment: 'Could not post your comment — try again.',
+    tapForSound: 'Tap for sound',
     videoFallback: 'This video can’t play in your browser — but you can still save it.',
     downloadVideo: 'Download video',
 
@@ -194,5 +195,8 @@ export default {
     copiedList: 'Copied full list',
     confirmDeleteGuest: (name) => `Permanently delete ${name}? This cannot be undone.`,
     deletedGuest: (name) => `Deleted ${name}`,
+    clickToRename: 'Click to rename',
+    renamePrompt: 'New name:',
+    renamedGuest: (name) => `Renamed to ${name}`,
   },
 };

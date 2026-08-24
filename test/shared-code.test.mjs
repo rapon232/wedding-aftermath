@@ -138,6 +138,25 @@ test('admin can delete an empty guest but not one with uploads, an admin, or sel
   );
 });
 
+test('admin can rename a guest (sanitized + capitalized)', async () => {
+  const mk = await req(srv.base, 'POST', '/api/admin/guests', {
+    cookie: admin,
+    json: { name: 'Temp', email: 'rename@example.bg' },
+  });
+  const id = mk.data[0].id;
+  const r = await req(srv.base, 'POST', `/api/admin/guests/${id}/rename`, {
+    cookie: admin,
+    json: { name: 'мария иванова' },
+  });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.name, 'Мария Иванова');
+  const empty = await req(srv.base, 'POST', `/api/admin/guests/${id}/rename`, {
+    cookie: admin,
+    json: { name: '   ' },
+  });
+  assert.equal(empty.status, 400);
+});
+
 test('classic mode: register is 404 and shared code is rejected at login', async () => {
   const classic = await spawnServer();
   try {

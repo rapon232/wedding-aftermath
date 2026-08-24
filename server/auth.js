@@ -8,6 +8,22 @@ const COOKIE = 'lw_session';
 // Linear (no-backtracking) email sanity check: local@domain with a dot in domain.
 const isEmail = (e) => /^[^@\s]+@[^@\s]+$/.test(e) && e.slice(e.indexOf('@') + 1).includes('.');
 
+// Sanitize a guest-supplied display name: drop control + zero-width/bidi marks
+// (they corrupt the admin export and enable visual impersonation), cap length,
+// and capitalize each word (the entry field shows uppercase, so guests can't
+// self-check; only first letters change so intentional caps like "McArthur"
+// survive). Shared by self-registration and admin rename.
+function cleanGuestName(raw) {
+  return (
+    String(raw || '')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x1f​-‏‪-‮]/g, '')
+      .trim()
+      .slice(0, 80)
+      .replace(/(^|[\s-])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase())
+  );
+}
+
 export function setSession(res, guestId) {
   res.cookie(COOKIE, String(guestId), {
     signed: true,
@@ -96,15 +112,7 @@ authRouter.post('/api/register', throttleLogin, (req, res) => {
   if (!config.sharedCode) return res.status(404).json({ error: 'not enabled' });
   const code = normalizeCode(req.body?.code);
   if (code !== config.sharedCode) return res.status(401).json({ error: 'invalid code' });
-  // Strip control chars plus zero-width/bidi marks: they corrupt the admin
-  // "Name: CODE" clipboard export and let a name visually impersonate another.
-  const name = String(req.body?.name || '')
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x1f\u200b-\u200f\u202a-\u202e]/g, '')
-    .trim()
-    .slice(0, 80)
-    // Capitalize each word (the field shows uppercase, so guests can't self-check).
-    .replace(/(^|[\s-])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+  const name = cleanGuestName(req.body?.name);
   const email = String(req.body?.email || '')
     .trim()
     .toLowerCase();
@@ -277,6 +285,15 @@ const deleteGuest = db.transaction((id) => {
   db.prepare('DELETE FROM notes WHERE guest_id = ?').run(id);
   db.prepare('DELETE FROM guests WHERE id = ?').run(id);
 });
+// Rename any guest (fix a self-registered typo, or set the admin's own name).
+authRouter.post('/api/admin/guests/:id/rename', requireAdmin, (req, res) => {
+  const name = cleanGuestName(req.body?.name);
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const info = db.prepare('UPDATE guests SET name = ? WHERE id = ?').run(name, Number(req.params.id));
+  if (!info.changes) return res.status(404).json({ error: 'not found' });
+  res.json({ ok: true, name });
+});
+
 authRouter.delete('/api/admin/guests/:id', requireAdmin, (req, res) => {
   const id = Number(req.params.id);
   if (id === req.guest.id) return res.status(400).json({ error: 'cannot delete yourself' });
