@@ -1,4 +1,4 @@
-// Bulgarian site (bg.aftermath.mitio.tech — the Sofia wedding, 08–09.08.2026).
+// Bulgarian site (bg-aftermath.mitio.tech — the Sofia wedding, 08–09.08.2026).
 // Mirrors src/i18n/en.js. Translations are length-matched to the UI so buttons
 // and the toolbar don't overflow on phones.
 export default {
@@ -6,7 +6,7 @@ export default {
   lang: 'bg',
   intl: 'bg-BG',
   suit: '♠', // Sofia's card suit (Sicily is ♥)
-  publicUrl: 'https://bg.aftermath.mitio.tech',
+  publicUrl: 'https://bg-aftermath.mitio.tech',
 
   meta: {
     headTitle: '#LoveWins. Споменник ♠',
