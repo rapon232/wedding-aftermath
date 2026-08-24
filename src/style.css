@@ -1437,12 +1437,9 @@ body.selecting .cell-fav {
 }
 
 /* Curation view: pinned photographer shots get a featured, magazine-scale tile (12.4) */
-@media (min-width: 640px) {
-  .cell.pinned {
-    grid-column: span 2;
-    aspect-ratio: 16 / 10;
-  }
-}
+/* Pinned tiles keep the ring but stay the same size as everything else — the
+   old desktop span-2 treatment broke the grid flow once pinned items also
+   appear as in-place copies. */
 
 /* Lightbox opens with a gentle zoom-in (12.5) */
 .lightbox:not([hidden]) .lb-stage {
