@@ -5,6 +5,26 @@ import { fileURLToPath } from 'url';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PROD = process.env.NODE_ENV === 'production';
 
+// Which site this instance serves: 'en' (aftermath.mitio.tech, per-guest codes)
+// or 'bg' (bg.aftermath.mitio.tech, shared code + self-registration). Picks the
+// built frontend (dist/<site>) and the language of server-sent guest messages.
+const SITE = process.env.SITE === 'bg' ? 'bg' : 'en';
+
+// Guest-facing messages the server itself produces (upload guard etc.). Auth
+// errors aren't here — the login page maps those to its own strings by status.
+// NB: every OTHER guest string lives in src/i18n/{en,bg}.js; these two live here
+// because the runtime image ships without src/. Keep wording in sync manually.
+const MESSAGES = {
+  en: {
+    galleryFull: 'The gallery is full right now — please tell the couple.',
+    uploadFlood: 'Whoa — that’s a lot at once. Give it a minute and keep going.',
+  },
+  bg: {
+    galleryFull: 'Галерията е пълна в момента — кажи на младоженците.',
+    uploadFlood: 'Уау — това е много наведнъж. Изчакай минута и продължи.',
+  },
+};
+
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET || SESSION_SECRET === 'change-me') {
   if (PROD) {
@@ -14,12 +34,32 @@ if (!SESSION_SECRET || SESSION_SECRET === 'change-me') {
   console.warn('⚠ SESSION_SECRET not set — using insecure dev secret.');
 }
 
+// Shared access code, normalized the way login input is (mirrors normalizeCode
+// in auth.js — can't import it here without a config↔auth cycle; keep in sync).
+// The login field accepts exactly 8 characters, so any other length is a code
+// no guest could ever type — refuse to ship that misconfiguration.
+const SHARED_CODE = String(process.env.SHARED_CODE || '')
+  .toUpperCase()
+  .replace(/[^A-Z0-9]/g, '');
+if (SHARED_CODE && SHARED_CODE.length !== 8) {
+  console.error(
+    `SHARED_CODE must normalize to exactly 8 characters — got "${SHARED_CODE}" (${SHARED_CODE.length}). Guests can only type 8.`,
+  );
+  if (PROD) process.exit(1);
+}
+
 export const config = {
   prod: PROD,
   port: Number(process.env.PORT) || 3000,
   sessionSecret: SESSION_SECRET && SESSION_SECRET !== 'change-me' ? SESSION_SECRET : 'dev-secret-do-not-use',
   dataDir: path.resolve(ROOT, process.env.DATA_DIR || './data'),
-  distDir: path.join(ROOT, 'dist'),
+  site: SITE,
+  msg: MESSAGES[SITE],
+  distDir: path.resolve(ROOT, process.env.DIST_DIR || path.join('dist', SITE)),
+  // Shared access code (normalized like any code). When set, entering it on the
+  // login page asks for name+email and self-registers the guest; personal codes
+  // keep working. Unset (the default) → classic per-guest codes only.
+  sharedCode: SHARED_CODE,
   adminName: process.env.ADMIN_NAME || 'Admin',
   // Where the wedding happened. Photo EXIF timestamps are timezone-naive wall-clock
   // times; we interpret them in this zone (server may be elsewhere, e.g. Sofia).

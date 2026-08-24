@@ -3,6 +3,7 @@
 // visit", deep links, and lightbox hand-off.
 
 import { openLightbox, initLightbox } from './lightbox.js';
+import SITE, { t } from './site.js';
 
 let me;
 let state = { sort: 'taken-desc', type: '', uploader: '' };
@@ -23,14 +24,14 @@ const grid = () => document.getElementById('gallery');
 export function initGallery(user) {
   me = user;
   const tz = me.eventTz || 'Europe/Rome';
-  fmt = new Intl.DateTimeFormat('en-GB', {
+  fmt = new Intl.DateTimeFormat(SITE.intl, {
     timeZone: tz,
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
   });
-  fmtDay = new Intl.DateTimeFormat('en-GB', {
+  fmtDay = new Intl.DateTimeFormat(SITE.intl, {
     timeZone: tz,
     weekday: 'long',
     day: 'numeric',
@@ -144,7 +145,7 @@ function showLivePill() {
     });
     document.body.appendChild(el);
   }
-  el.textContent = `✨ ${liveNew} new — tap to see`;
+  el.textContent = t.livePill(liveNew);
 }
 
 function clearLivePill() {
@@ -162,7 +163,7 @@ export function reload() {
   inEveryoneSection = false;
   loading = false;
   grid().innerHTML = '';
-  setEmpty('Loading…');
+  setEmpty(t.loading);
   loadUploaders(); // new uploaders (incl. you) show up in the filter without a refresh
   return loadPage(true);
 }
@@ -289,12 +290,7 @@ function bindToolbar() {
 async function deleteSelected() {
   if (!selected.size) return;
   const ids = [...selected];
-  if (
-    !confirm(
-      `Delete ${ids.length} selected item${ids.length === 1 ? '' : 's'}? This removes ${ids.length === 1 ? 'it' : 'them'} for everyone.`,
-    )
-  )
-    return;
+  if (!confirm(t.confirmDeleteMany(ids.length))) return;
   // Delete with light concurrency; remove each from the grid as it goes.
   let i = 0;
   async function worker() {
@@ -310,7 +306,7 @@ async function deleteSelected() {
   }
   await Promise.all([worker(), worker(), worker()]);
   setSelectMode(false);
-  toast('Deleted');
+  toast(t.deletedToast);
 }
 
 // --- Selection mode ---
@@ -326,7 +322,7 @@ function setSelectMode(on) {
 }
 
 function updateSelectionUi() {
-  document.getElementById('selCount').textContent = `${selected.size} selected`;
+  document.getElementById('selCount').textContent = t.nSelected(selected.size);
   document.getElementById('selDownloadBtn').disabled = !selected.size;
   for (const el of grid().querySelectorAll('.cell')) {
     el.classList.toggle('selected', selected.has(el.dataset.id));
@@ -348,7 +344,7 @@ function postDownload(fields) {
   document.body.appendChild(form);
   form.submit();
   form.remove();
-  toast('Preparing your download… the zip will start shortly.');
+  toast(t.zipToast);
 }
 
 async function loadUploaders() {
@@ -356,7 +352,7 @@ async function loadUploaders() {
   if (!r.ok) return;
   const uploaders = await r.json();
   const sel = document.getElementById('uploaderSel');
-  sel.innerHTML = '<option value="">Everyone</option>';
+  sel.innerHTML = `<option value="">${t.everyone}</option>`;
   for (const u of uploaders) {
     const opt = document.createElement('option');
     opt.value = u.id;
@@ -391,27 +387,23 @@ async function loadPage(first = false) {
 
     const grouped = state.sort.startsWith('taken');
     if (first && data.pinned?.length) {
-      addSectionHeader('✦ Pinned');
+      addSectionHeader(t.pinnedHeader);
       appendItems(data.pinned, false);
-      addSectionHeader('Everyone’s photos & videos');
+      addSectionHeader(t.everyoneHeader);
     }
     inEveryoneSection = true;
     appendItems(data.items, grouped);
 
     const anything = (first ? data.pinned?.length : 0) || items.length;
     if (first && !anything) {
-      setEmpty(
-        state.sort === 'loved'
-          ? 'No favorites yet — tap the ♥ on photos you love.'
-          : 'No memories here yet — be the first to share the day ♥',
-      );
+      setEmpty(state.sort === 'loved' ? t.emptyLoved : t.emptyGallery);
     } else {
       setEmpty(null);
     }
     // After the first successful load, stamp "seen" so the next visit compares against now.
     if (first) fetch('/api/seen', { method: 'POST' }).catch(() => {});
   } catch {
-    if (gen === loadGen && first) setEmpty('Could not load the gallery — check your connection and refresh.');
+    if (gen === loadGen && first) setEmpty(t.loadError);
   } finally {
     if (gen === loadGen) loading = false; // don't clear a newer load's guard
   }
@@ -432,13 +424,8 @@ function setEmpty(text) {
   el.textContent = text;
 }
 
-// The wedding weekend's exact dates (interpreted in event tz) — any other
-// Thursday/Friday/Saturday is just a regular day.
-const EVENT_DAYS = {
-  '2026-07-09': ' · 🕊️ White Dinner Day',
-  '2026-07-10': ' · 💍 Wedding Day',
-  '2026-07-11': ' · ✨ Pool Day',
-};
+// The event's special dates live in the site config (per-site dates + labels);
+// any other day is just a regular day.
 function eventLabel(iso) {
   // en-CA formats as YYYY-MM-DD; event tz keeps late-night photos on their local day.
   const day = new Intl.DateTimeFormat('en-CA', {
@@ -447,7 +434,7 @@ function eventLabel(iso) {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date(iso));
-  return EVENT_DAYS[day] || '';
+  return SITE.days[day] || '';
 }
 
 function addSectionHeader(text) {
@@ -500,14 +487,14 @@ function cell(item, index) {
   btn.className = 'cell';
   btn.dataset.id = item.id;
   btn.dataset.index = index;
-  btn.setAttribute('aria-label', `${item.type} by ${item.uploader_name}`);
+  btn.setAttribute('aria-label', t.mediaBy(item.type, item.uploader_name));
   // Pinned items live in their own "✦ Pinned" section, so no per-cell corner
   // icon is needed. (Keep the class for the subtle ring.)
   if (item.pinned_at) btn.classList.add('pinned');
   if (isNew(item)) {
     const nb = document.createElement('span');
     nb.className = 'cell-new';
-    nb.textContent = 'NEW';
+    nb.textContent = t.newBadge;
     btn.appendChild(nb);
   }
 
@@ -617,7 +604,7 @@ function removeItem(id) {
     // Nothing left — clear day/section headers too so they don't linger.
     grid().innerHTML = '';
     lastDayLabel = null;
-    setEmpty('No memories here yet — be the first to share the day ♥');
+    setEmpty(t.emptyGallery);
   } else {
     pruneHeaders(); // drop any day/section header whose items are all gone
     grid()
@@ -654,8 +641,8 @@ function scheduleUploaderRefresh() {
 
 function renderCount() {
   const parts = [];
-  if (totals.photo) parts.push(`${totals.photo} photo${totals.photo === 1 ? '' : 's'}`);
-  if (totals.video) parts.push(`${totals.video} video${totals.video === 1 ? '' : 's'}`);
+  if (totals.photo) parts.push(t.nPhotos(totals.photo));
+  if (totals.video) parts.push(t.nVideos(totals.video));
   document.getElementById('countLabel').textContent = parts.join(' · ');
 }
 
@@ -663,7 +650,7 @@ function renderCount() {
 function showNewBanner(n) {
   const bar = document.getElementById('newBanner');
   if (!bar) return;
-  bar.textContent = `✨ ${n} new ${n === 1 ? 'memory' : 'memories'} since your last visit — tap to see`;
+  bar.textContent = t.newBanner(n);
   bar.hidden = false;
   // Tapping jumps to the "Recently uploaded" view, where the new stuff is on top.
   bar.addEventListener(

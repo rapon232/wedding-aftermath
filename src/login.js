@@ -1,9 +1,19 @@
 // Login page: code entry → POST /api/login → gallery.
+// Shared-code sites (SHARED_CODE set on the server) add a second step: the code
+// answers { needProfile: true }, we ask for name + email, and /api/register
+// creates-or-resumes the guest (matched by email) and starts the session.
+import SITE, { t } from './site.js';
 
 const form = document.getElementById('loginForm');
 const input = document.getElementById('codeInput');
 const errorEl = document.getElementById('loginError');
 const btn = document.getElementById('loginBtn');
+const subEl = document.getElementById('loginSub');
+const profileEl = document.getElementById('profileFields');
+const nameInput = document.getElementById('nameInput');
+const emailInput = document.getElementById('emailInput');
+
+let profileMode = false;
 
 // Magic link from the invite email: /?code=XXXX-XXXX auto-fills and submits.
 const magicCode = new URLSearchParams(location.search).get('code');
@@ -30,10 +40,11 @@ input.addEventListener('input', () => {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (profileMode) return register();
   const code = input.value.trim();
-  if (!code) return showError('Please enter your code.');
+  if (!code) return showError(t.errEnterCode);
   btn.disabled = true;
-  btn.textContent = 'Checking…';
+  btn.textContent = t.checking;
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
@@ -41,38 +52,80 @@ form.addEventListener('submit', async (e) => {
       body: JSON.stringify({ code }),
     });
     if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.needProfile) {
+        enterProfileMode();
+      } else {
+        await celebrate();
+        location.replace('/');
+      }
+      return;
+    }
+    showError(res.status === 429 ? t.errTooMany : t.errNoMatch);
+  } catch {
+    showError(t.errConn);
+  }
+  btn.disabled = false;
+  btn.textContent = t.enterGallery;
+});
+
+// The shared code checked out — ask who this is before opening the door.
+function enterProfileMode() {
+  profileMode = true;
+  profileEl.hidden = false;
+  input.readOnly = true;
+  subEl.textContent = t.regSub;
+  btn.disabled = false;
+  btn.textContent = t.enterGallery;
+  nameInput.focus();
+}
+
+async function register() {
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  if (!name) return showError(t.errName);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showError(t.errEmail);
+  btn.disabled = true;
+  btn.textContent = t.checking;
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: input.value.trim(), name, email }),
+    });
+    if (res.ok) {
       await celebrate();
       location.replace('/');
       return;
     }
+    // Unmapped statuses (500, 404 mode-off, …) read as a connection problem —
+    // never blame the guest's email for a server-side failure.
     showError(
-      res.status === 429
-        ? 'Too many attempts — wait a minute and try again.'
-        : 'That code doesn’t match. Double-check and try again.',
+      { 429: t.errTooMany, 403: t.errRevoked, 401: t.errNoMatch, 400: t.errEmail }[res.status] || t.errConn,
     );
   } catch {
-    showError('Connection problem — please try again.');
+    showError(t.errConn);
   }
   btn.disabled = false;
-  btn.textContent = 'Enter the gallery';
-});
+  btn.textContent = t.enterGallery;
+}
 
 function showError(msg) {
   errorEl.textContent = msg;
   errorEl.hidden = false;
-  input.focus();
+  (profileMode ? nameInput : input).focus();
 }
 
-// A little ♥ burst on successful sign-in, then redirect.
+// A little suit burst on successful sign-in, then redirect.
 function celebrate() {
-  btn.textContent = 'Welcome ♥';
+  btn.textContent = t.welcomeBtn;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduce) return new Promise((r) => setTimeout(r, 150));
   const layer = document.createElement('div');
   layer.className = 'burst';
   for (let i = 0; i < 16; i++) {
     const h = document.createElement('span');
-    h.textContent = '♥';
+    h.textContent = SITE.suit;
     const angle = (Math.PI * 2 * i) / 16 + Math.random();
     const dist = 90 + Math.random() * 120;
     h.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);

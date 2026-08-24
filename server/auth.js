@@ -46,7 +46,10 @@ function normalizeCode(input) {
     .replace(/[^A-Z0-9]/g, '');
 }
 
-// Minimal brute-force hygiene: 10 login attempts per IP per minute.
+// Minimal brute-force hygiene: 30 auth attempts per IP per minute. Sized for
+// shared-code onboarding bursts — a family on one Wi-Fi IP costs 2 requests per
+// guest (login + register), and 30/min is still hopeless against the 31^8 code
+// space or an 8-char shared code worth rotating anyway.
 const attempts = new Map();
 function throttleLogin(req, res, next) {
   const now = Date.now();
@@ -55,7 +58,7 @@ function throttleLogin(req, res, next) {
     for (const [ip, r] of attempts) if (now >= r.resetAt) attempts.delete(ip);
   }
   const rec = attempts.get(req.ip);
-  if (rec && now < rec.resetAt && rec.count >= 10) {
+  if (rec && now < rec.resetAt && rec.count >= 30) {
     return res.status(429).json({ error: 'too many attempts, wait a minute' });
   }
   if (!rec || now >= rec.resetAt) attempts.set(req.ip, { count: 1, resetAt: now + 60_000 });
@@ -71,13 +74,81 @@ authRouter.post('/api/login', throttleLogin, (req, res) => {
   const guest = db
     .prepare("SELECT id, name, is_admin, revoked_at FROM guests WHERE replace(code, '-', '') = ?")
     .get(code);
-  if (!guest || guest.revoked_at) return res.status(401).json({ error: 'invalid code' });
+  if (!guest) {
+    // Shared-code mode: the site-wide code checks out, but we don't know who
+    // this is yet — no session until they introduce themselves via /api/register.
+    if (config.sharedCode && code === config.sharedCode) return res.json({ needProfile: true });
+    return res.status(401).json({ error: 'invalid code' });
+  }
+  if (guest.revoked_at) return res.status(401).json({ error: 'invalid code' });
   setSession(res, guest.id);
   // Stamp first-login time once → drives the "activated" dot in the guest panel.
   db.prepare(
     "UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL",
   ).run(guest.id);
   res.json({ id: guest.id, name: guest.name, isAdmin: !!guest.is_admin });
+});
+
+// Shared-code self-registration: the code proved they're invited; name+email
+// tell us who they are. Email is the identity key — the same person on a second
+// device resumes their existing guest instead of forking a duplicate.
+authRouter.post('/api/register', throttleLogin, (req, res) => {
+  if (!config.sharedCode) return res.status(404).json({ error: 'not enabled' });
+  const code = normalizeCode(req.body?.code);
+  if (code !== config.sharedCode) return res.status(401).json({ error: 'invalid code' });
+  // Strip control chars plus zero-width/bidi marks: they corrupt the admin
+  // "Name: CODE" clipboard export and let a name visually impersonate another.
+  const name = String(req.body?.name || '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1f\u200b-\u200f\u202a-\u202e]/g, '')
+    .trim()
+    .slice(0, 80);
+  const email = String(req.body?.email || '')
+    .trim()
+    .toLowerCase();
+  if (!name) return res.status(400).json({ error: 'name required' });
+  if (!isEmail(email)) return res.status(400).json({ error: 'invalid email' });
+
+  const existing = db
+    .prepare(
+      'SELECT id, name, is_admin, revoked_at FROM guests WHERE email IS NOT NULL AND lower(email) = ? ORDER BY id LIMIT 1',
+    )
+    .get(email);
+  if (existing) {
+    // Never hand out an admin session for shared-code + email — the shared code
+    // is quasi-public, so an admin's known email must not be an escalation path.
+    // Admins sign in with their personal code like before.
+    if (existing.is_admin) return res.status(401).json({ error: 'invalid code' });
+    if (existing.revoked_at) return res.status(403).json({ error: 'access revoked' });
+    setSession(res, existing.id);
+    db.prepare(
+      "UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL",
+    ).run(existing.id);
+    return res.json({ id: existing.id, name: existing.name, isAdmin: !!existing.is_admin });
+  }
+
+  // New face: their personal code is generated (schema wants one) but invisible —
+  // they'll always come back through the shared code + their email.
+  let row;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      row = db
+        .prepare(
+          `INSERT INTO guests (code, name, email, activated_at)
+           VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now')) RETURNING id, name`,
+        )
+        .get(generateCode(), name, email);
+      break;
+    } catch (err) {
+      // Astronomically unlikely code collision — retry with a fresh one. Any
+      // other constraint is a real error and must surface, not be retried.
+      const codeCollision =
+        String(err.code).startsWith('SQLITE_CONSTRAINT') && /guests\.code/.test(String(err.message));
+      if (!codeCollision || attempt >= 4) throw err;
+    }
+  }
+  setSession(res, row.id);
+  res.status(201).json({ id: row.id, name: row.name, isAdmin: false });
 });
 
 authRouter.post('/api/logout', (_req, res) => {
@@ -94,6 +165,7 @@ authRouter.get('/api/me', requireApi, (req, res) => {
     name: req.guest.name,
     isAdmin: !!req.guest.is_admin,
     eventTz: config.eventTz,
+    authMode: config.sharedCode ? 'shared' : 'codes',
     lastSeen: g.last_seen_at || null,
   });
 });

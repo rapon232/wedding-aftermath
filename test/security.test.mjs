@@ -153,8 +153,10 @@ test('cookie hygiene: session cookie is HttpOnly + SameSite', async () => {
 });
 
 test('abuse: repeated bad logins get throttled (429)', async () => {
+  // Limit is 30/min/IP — sized for shared-code onboarding bursts (2 requests
+  // per registering guest, families share a NAT IP).
   let sawThrottle = false;
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 35; i++) {
     const r = await req(srv.base, 'POST', '/api/login', { json: { code: 'ZZZZ-ZZZZ' } });
     if (r.status === 429) sawThrottle = true;
   }

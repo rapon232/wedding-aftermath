@@ -1,5 +1,6 @@
 // Lightbox: full-screen viewer with keyboard/swipe navigation, video playback,
 // caption, download and (own/admin) delete.
+import { t } from './site.js';
 
 let me;
 let fmtDate = (x) => x;
@@ -69,33 +70,33 @@ function build() {
   overlay.hidden = true;
   overlay.innerHTML = `
     <div class="lb-stage"></div>
-    <button class="lb-btn lb-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <button class="lb-btn lb-prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <button class="lb-btn lb-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="lb-btn lb-close" aria-label="${t.close}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <button class="lb-btn lb-prev" aria-label="${t.previous}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="lb-btn lb-next" aria-label="${t.next}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     <div class="lb-caption">
       <div class="lb-meta">
         <span class="lb-by"></span>
         <span class="lb-date"></span>
       </div>
       <div class="lb-actions">
-        <button class="lb-fav btn-lb" aria-label="Favorite"><svg class="lb-fav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="lb-fav-n"></span></button>
-        <button class="lb-comment btn-lb" aria-label="Comments"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span class="lb-comment-n"></span></button>
-        <button class="lb-pin btn-lb" aria-label="Pin" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg></button>
-        <button class="lb-rotate btn-lb" aria-label="Rotate" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
-        <a class="lb-download btn-lb" download>Save</a>
-        <button class="lb-delete btn-lb" hidden>Delete</button>
+        <button class="lb-fav btn-lb" aria-label="${t.favorite}"><svg class="lb-fav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="lb-fav-n"></span></button>
+        <button class="lb-comment btn-lb" aria-label="${t.comments}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span class="lb-comment-n"></span></button>
+        <button class="lb-pin btn-lb" aria-label="${t.pin}" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg></button>
+        <button class="lb-rotate btn-lb" aria-label="${t.rotate}" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <a class="lb-download btn-lb" download>${t.save}</a>
+        <button class="lb-delete btn-lb" hidden>${t.delete}</button>
       </div>
     </div>
     <div class="lb-live" aria-hidden="true"></div>
-    <div class="lb-comments" aria-label="Comments">
+    <div class="lb-comments" aria-label="${t.comments}">
       <div class="lb-comments-head">
-        <strong>Comments</strong>
-        <button class="lb-comments-close" aria-label="Close comments">✕</button>
+        <strong>${t.comments}</strong>
+        <button class="lb-comments-close" aria-label="${t.closeComments}">✕</button>
       </div>
       <ul class="lb-comments-list"></ul>
       <form class="lb-comment-form">
-        <input class="lb-comment-input" type="text" maxlength="1000" placeholder="Add a comment…" />
-        <button type="submit" class="btn btn-bx lb-comment-send">Send</button>
+        <input class="lb-comment-input" type="text" maxlength="1000" placeholder="${t.addComment}" />
+        <button type="submit" class="btn btn-bx lb-comment-send">${t.send}</button>
       </form>
     </div>
   `;
@@ -126,7 +127,7 @@ function build() {
   // the blob natively — reading fetch chunks into JS doubled peak memory
   // and made big videos fail to share on iOS. Unknown size → spinner.
   const showPie = (determinate) => {
-    dl.innerHTML = `<span class="lb-save-pie"${determinate ? '' : ' data-spin'}></span><span class="lb-save-pct">${determinate ? '0%' : 'Saving…'}</span>`;
+    dl.innerHTML = `<span class="lb-save-pie"${determinate ? '' : ' data-spin'}></span><span class="lb-save-pct">${determinate ? '0%' : t.saving}</span>`;
   };
   const setPie = (p) => {
     dl.querySelector('.lb-save-pie').style.setProperty('--p', p);
@@ -169,17 +170,17 @@ function build() {
       readyToShare = null;
       if (!navigator.canShare({ files: [file] })) throw new Error('unsupported');
       await navigator.share({ files: [file] });
-      dl.textContent = 'Save';
+      dl.textContent = t.save;
     } catch (err) {
       if (err?.name === 'AbortError') {
-        dl.textContent = 'Save'; // guest closed the sheet — nothing to do
+        dl.textContent = t.save; // guest closed the sheet — nothing to do
       } else if (err?.name === 'NotAllowedError' && file) {
         // A long download outlived the tap's activation window. Keep the
         // file and ask for one fresh tap instead of dumping it into Files.
         readyToShare = { id: item.id, file };
-        dl.textContent = 'Tap to save';
+        dl.textContent = t.tapToSave;
       } else {
-        dl.textContent = 'Save';
+        dl.textContent = t.save;
         location.href = `/media/file/${item.id}?download=1`;
       }
     } finally {
@@ -624,19 +625,19 @@ function show() {
     setupZoom(img);
   }
 
-  overlay.querySelector('.lb-by').textContent = `by ${item.uploader_name}`;
+  overlay.querySelector('.lb-by').textContent = t.byName(item.uploader_name);
   overlay.querySelector('.lb-date').textContent = item.taken_at ? fmtDate(item.taken_at) : '';
   const dlBtn = overlay.querySelector('.lb-download');
   dlBtn.href = `/media/file/${item.id}?download=1${item.rev ? `&v=${item.rev}` : ''}`;
   // New item: a held share-file or "Tap to save" label no longer applies
   // (but never wipe the pie of a download still in flight).
   readyToShare = null;
-  if (!dlBtn.dataset.busy) dlBtn.textContent = 'Save';
+  if (!dlBtn.dataset.busy) dlBtn.textContent = t.save;
   overlay.querySelector('.lb-delete').hidden = !(me.isAdmin || item.uploader_id === me.id);
   const pinBtn = overlay.querySelector('.lb-pin');
   pinBtn.hidden = !me.isAdmin;
   pinBtn.classList.toggle('active', !!item.pinned_at);
-  pinBtn.setAttribute('aria-label', item.pinned_at ? 'Unpin' : 'Pin');
+  pinBtn.setAttribute('aria-label', item.pinned_at ? t.unpin : t.pin);
   const rotBtn = overlay.querySelector('.lb-rotate');
   rotBtn.hidden = !(me.isAdmin && item.type === 'photo' && ROTATABLE_EXT.has(item.ext));
   rotBtn.disabled = false;
@@ -677,10 +678,10 @@ function step(delta) {
 
 async function del() {
   const item = list[idx];
-  if (!confirm(`Delete this ${item.type}? This removes it for everyone.`)) return;
+  if (!confirm(t.confirmDeleteOne(item.type))) return;
   const r = await fetch(`/api/media/${item.id}`, { method: 'DELETE' });
   if (!r.ok) {
-    alert('Could not delete — try again.');
+    alert(t.errDelete);
     return;
   }
   onDeleted(item.id); // gallery updates `list` in place (same array)
@@ -696,8 +697,8 @@ function showVideoFallback(stage, item) {
   box.style.backgroundImage = `url(/media/poster/${item.id})`;
   box.innerHTML = `
     <div class="lb-fallback-inner">
-      <p>This video can’t play in your browser — but you can still save it.</p>
-      <a class="btn-lb" href="/media/file/${item.id}?download=1" download>Download video</a>
+      <p>${t.videoFallback}</p>
+      <a class="btn-lb" href="/media/file/${item.id}?download=1" download>${t.downloadVideo}</a>
     </div>`;
   stage.appendChild(box);
 }
@@ -752,7 +753,7 @@ function renderComments() {
   if (!comments.length) {
     const li = document.createElement('li');
     li.className = 'lb-comment-empty';
-    li.textContent = 'No comments yet — say something sassy ✨';
+    li.textContent = t.noComments;
     ul.appendChild(li);
     return;
   }
@@ -770,7 +771,7 @@ function renderComments() {
       const del = document.createElement('button');
       del.className = 'lb-comment-del';
       del.textContent = '✕';
-      del.setAttribute('aria-label', 'Delete comment');
+      del.setAttribute('aria-label', t.deleteComment);
       del.addEventListener('click', () => deleteComment(c.id));
       li.appendChild(del);
     }
@@ -800,7 +801,7 @@ async function submitComment(e) {
     }
   } catch {
     input.value = body; // restore so the guest can retry
-    alert('Could not post your comment — try again.');
+    alert(t.errComment);
   }
 }
 
@@ -912,7 +913,7 @@ async function rotate() {
     show(); // re-renders the stage with the cache-busted, rotated preview
     onRotated(item); // gallery swaps this item's grid thumbnails
   } catch {
-    alert('Could not rotate — try again.');
+    alert(t.errRotate);
     btn.disabled = false;
   }
 }
@@ -926,7 +927,7 @@ async function togglePin() {
     body: JSON.stringify({ pinned }),
   });
   if (!r.ok) {
-    alert('Could not update pin — try again.');
+    alert(t.errPin);
     return;
   }
   // Stay in the flow: flip the state locally, pop the button, keep swiping.
@@ -934,7 +935,7 @@ async function togglePin() {
   item.pinned_at = pinned ? new Date().toISOString() : null;
   const btn = overlay.querySelector('.lb-pin');
   btn.classList.toggle('active', pinned);
-  btn.setAttribute('aria-label', pinned ? 'Unpin' : 'Pin');
+  btn.setAttribute('aria-label', pinned ? t.unpin : t.pin);
   btn.classList.remove('lb-pin-pop');
   void btn.offsetWidth; // restart the animation on rapid toggles
   btn.classList.add('lb-pin-pop');

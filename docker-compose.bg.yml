@@ -1,0 +1,32 @@
+# The Bulgarian site (bg.aftermath.mitio.tech) — Sofia wedding, 08–09.08.2026.
+# Same image as the Italian site; SITE=bg picks the Bulgarian frontend and
+# SHARED_CODE switches login to shared-code self-registration (no invite emails).
+#
+# On the NAS: create a SEPARATE Container Manager project from THIS file, with
+# its own .env (a NEW SESSION_SECRET — never reuse the Italian one) placed next
+# to it. Data lives in its own volume; the two sites share nothing.
+#
+# Cloudflare: add public hostname bg.aftermath.mitio.tech → http://localhost:3001
+services:
+  aftermath-bg:
+    image: ghcr.io/rapon232/wedding-aftermath:latest
+    container_name: wedding_aftermath_bg
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - '${HOST_PORT:-3001}:3000'
+    environment:
+      PORT: 3000
+      DATA_DIR: /data
+      NODE_ENV: production
+      SITE: bg
+      # The shared code is the sole login factor — this repo is public, so it
+      # lives in .env next to this file, never in git.
+      SHARED_CODE: ${SHARED_CODE:?set SHARED_CODE in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      ADMIN_NAME: ${ADMIN_NAME:-Mitio}
+      EVENT_TZ: Europe/Sofia
+      PUBLIC_URL: https://bg.aftermath.mitio.tech
+      # No RESEND_API_KEY: shared-code sites send no invite emails.
+    volumes:
+      - ${DATA_PATH:-./wedding_aftermath_bg_data}:/data

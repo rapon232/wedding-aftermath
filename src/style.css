@@ -755,6 +755,16 @@ body.lightbox-open .wrapper {
 .btn-lb:hover {
   background: rgba(247, 243, 238, 0.24);
 }
+/* Shared-code login, step 2: name/email fields reuse the code input's shell but
+   read as normal text, not an access code. */
+.profile-input {
+  font-family: inherit;
+  font-size: 17px;
+  letter-spacing: normal;
+  text-transform: none;
+  margin-top: 10px;
+}
+
 /* Rotate in flight: spin the icon until the rotated preview re-renders. */
 .lb-rotate:disabled svg {
   animation: lb-rotate-spin 0.8s linear infinite;

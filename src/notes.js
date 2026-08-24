@@ -1,6 +1,8 @@
 // Private notes to the newlyweds: anyone can leave one, only the couple (admin)
 // can read them. Leaving a note plays a little ♥ burst, like signing in.
 
+import SITE, { t } from './site.js';
+
 let me;
 let fmtDate = (x) => x;
 let panel = null;
@@ -33,20 +35,20 @@ function build() {
   panel.innerHTML = `
     <div class="notes-card">
       <div class="notes-head">
-        <h2>Notes for the <em>newlyweds</em> <span class="heart">♥</span></h2>
-        <button class="lb-btn notes-close" aria-label="Close">✕</button>
+        <h2>${t.notesTitleHtml} <span class="heart">${SITE.suit}</span></h2>
+        <button class="lb-btn notes-close" aria-label="${t.close}">✕</button>
       </div>
       <div class="note-compose">
-        ${me.isAdmin ? '' : '<p class="note-hint">Your note is private — only the couple will read it.</p>'}
+        ${me.isAdmin ? '' : `<p class="note-hint">${t.noteHint}</p>`}
         <form class="note-form">
-          <textarea class="note-input" rows="3" maxlength="1000" placeholder="Leave a message for the couple…"></textarea>
-          <button type="submit" class="btn btn-bx">Send your note</button>
+          <textarea class="note-input" rows="3" maxlength="1000" placeholder="${t.notePlaceholder}"></textarea>
+          <button type="submit" class="btn btn-bx">${t.noteSend}</button>
         </form>
       </div>
       <div class="note-thanks" hidden>
-        <p class="note-thanks-title">Thank you <span class="heart">♥</span></p>
-        <p class="note-thanks-sub">Your note is on its way to the newlyweds.</p>
-        <button class="btn btn-ghost note-again">Leave another</button>
+        <p class="note-thanks-title">${t.noteThanks} <span class="heart">${SITE.suit}</span></p>
+        <p class="note-thanks-sub">${t.noteThanksSub}</p>
+        <button class="btn btn-ghost note-again">${t.noteAgain}</button>
       </div>
       ${me.isAdmin ? '<ul class="notes-list"></ul>' : ''}
     </div>
@@ -84,7 +86,7 @@ function render() {
   if (!notes.length) {
     const li = document.createElement('li');
     li.className = 'note-empty';
-    li.textContent = 'No notes yet.';
+    li.textContent = t.noNotes;
     ul.appendChild(li);
     return;
   }
@@ -106,7 +108,7 @@ function render() {
     const del = document.createElement('button');
     del.className = 'note-del';
     del.textContent = '✕';
-    del.setAttribute('aria-label', 'Delete note');
+    del.setAttribute('aria-label', t.deleteNote);
     del.addEventListener('click', () => remove(n.id));
     li.appendChild(del);
     ul.appendChild(li);
@@ -138,7 +140,7 @@ async function submit(e) {
       panel.querySelector('.note-thanks').hidden = false;
     }
   } catch {
-    alert('Could not save your note — try again.');
+    alert(t.errNote);
   }
   btn.disabled = false;
 }
@@ -157,7 +159,7 @@ function burst() {
   layer.className = 'burst burst-center';
   for (let i = 0; i < 16; i++) {
     const h = document.createElement('span');
-    h.textContent = '♥';
+    h.textContent = SITE.suit;
     const angle = (Math.PI * 2 * i) / 16 + Math.random();
     const dist = 80 + Math.random() * 110;
     h.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);

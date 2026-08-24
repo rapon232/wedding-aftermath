@@ -49,13 +49,13 @@ const uploadTimes = new Map(); // guestId -> [timestamps]
 
 function uploadGuard(req, res, next) {
   if (!hasFreeSpace()) {
-    return res.status(507).json({ error: 'The gallery is full right now — please tell the couple.' });
+    return res.status(507).json({ error: config.msg.galleryFull });
   }
   const now = Date.now();
   const cutoff = now - config.uploadRateWindowMs;
   const times = (uploadTimes.get(req.guest.id) || []).filter((t) => t > cutoff);
   if (times.length >= config.uploadRateMax) {
-    return res.status(429).json({ error: 'Whoa — that’s a lot at once. Give it a minute and keep going.' });
+    return res.status(429).json({ error: config.msg.uploadFlood });
   }
   times.push(now);
   uploadTimes.set(req.guest.id, times);
@@ -230,7 +230,7 @@ mediaRouter.post(
     if (!hasFreeSpace()) {
       chunkSessions.delete(req.params.uid);
       fs.rmSync(s.partPath, { force: true });
-      return res.status(507).json({ error: 'The gallery is full right now — please tell the couple.' });
+      return res.status(507).json({ error: config.msg.galleryFull });
     }
     try {
       // Positional write (async, so parallel chunks don't block the event loop).

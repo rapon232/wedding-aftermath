@@ -66,6 +66,9 @@ ensureColumn('guests', 'last_seen_at', 'last_seen_at TEXT');
 ensureColumn('guests', 'email', 'email TEXT');
 ensureColumn('guests', 'invited_at', 'invited_at TEXT');
 ensureColumn('guests', 'activated_at', 'activated_at TEXT');
+// Shared-code self-registration resumes guests by email. Deliberately NOT
+// unique: pre-existing data may hold duplicate or missing emails.
+db.exec('CREATE INDEX IF NOT EXISTS idx_guests_email ON guests(lower(email))');
 
 // Favorites / ♥ reactions (group 11.3)
 db.exec(`

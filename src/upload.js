@@ -8,6 +8,8 @@
 // - Memory is bounded: at most one big (chunked) file uploads at a time.
 // - Requests time out and chunks retry, so a flaky connection self-heals.
 
+import { t } from './site.js';
+
 const CHUNK_THRESHOLD = 90 * 1024 * 1024; // above this → chunked path (Cloudflare body limit)
 const PARALLEL = 2; // simultaneous file uploads
 const MAX_BIG = 1; // of those, at most this many big/chunked files (caps mobile memory)
@@ -110,7 +112,7 @@ async function uploadItem(item) {
       setTimeout(pump, 800 * item.attempts);
     } else {
       item.status = 'failed';
-      item.error = err.message || 'upload failed';
+      item.error = err.message || t.errUploadFailed;
     }
   }
   if (item.preview && ['done', 'duplicate', 'processing'].includes(item.status)) {
@@ -181,7 +183,7 @@ function pollStatus(item, delay = 2000) {
         onMediaReady(item.id);
       } else if (m.status === 'failed') {
         item.status = 'failed';
-        item.error = 'processing failed';
+        item.error = t.errProcessing;
       } else {
         pollStatus(item, Math.min(delay * 1.5, 10000));
         return;
@@ -211,11 +213,11 @@ function xhr(method, url, body, onProgress) {
         /* non-JSON error body */
       }
       if (x.status >= 200 && x.status < 300) resolve(data);
-      else reject(new Error(data?.error || `upload failed (${x.status})`));
+      else reject(new Error(data?.error || `${t.errUploadFailed} (${x.status})`));
     });
-    x.addEventListener('error', () => reject(new Error('connection lost')));
-    x.addEventListener('timeout', () => reject(new Error('timed out')));
-    x.addEventListener('abort', () => reject(new Error('aborted')));
+    x.addEventListener('error', () => reject(new Error(t.errConnLost)));
+    x.addEventListener('timeout', () => reject(new Error(t.errTimeout)));
+    x.addEventListener('abort', () => reject(new Error(t.errAborted)));
     x.send(body);
   });
 }
@@ -234,12 +236,12 @@ async function jsonFetch(url, payload) {
 // --- Tray rendering ---
 
 const STATUS_LABEL = {
-  queued: 'Waiting…',
-  uploading: 'Uploading',
-  processing: 'Processing…',
-  done: 'Done ✓',
-  duplicate: 'Already in the gallery',
-  failed: 'Failed',
+  queued: t.statusQueued,
+  uploading: t.statusUploading,
+  processing: t.statusProcessing,
+  done: t.statusDone,
+  duplicate: t.statusDuplicate,
+  failed: t.statusFailed,
 };
 
 // Lightweight in-place progress paint (coalesced to one per frame). Never rebuilds
@@ -274,9 +276,9 @@ function render() {
   const busy = items.some((i) => ['queued', 'uploading', 'processing'].includes(i.status));
   trayEl.innerHTML = `
     <div class="tray-head">
-      <strong>Uploads</strong>
+      <strong>${t.uploads}</strong>
       <span>${doneCount}/${items.length}</span>
-      <button class="tray-clear" ${busy ? 'disabled' : ''}>Clear</button>
+      <button class="tray-clear" ${busy ? 'disabled' : ''}>${t.clear}</button>
     </div>
     <ul class="tray-list"></ul>
   `;
@@ -314,7 +316,7 @@ function render() {
     if (item.status === 'failed') {
       const retry = document.createElement('button');
       retry.className = 'tray-retry';
-      retry.textContent = 'Retry';
+      retry.textContent = t.retry;
       retry.addEventListener('click', () => {
         item.attempts = 0;
         item.status = 'queued';
