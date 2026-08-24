@@ -26,6 +26,7 @@ async function init() {
     location.replace('/login.html');
     return;
   }
+  sessionStorage.removeItem('lw-post-auth-redirects'); // reached the app — reset the login-bounce guard
 
   // PWA: register the service worker so the site is installable to the home screen.
   if ('serviceWorker' in navigator) {

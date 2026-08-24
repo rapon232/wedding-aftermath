@@ -23,8 +23,22 @@ const magicCode = new URLSearchParams(location.search).get('code');
 
 // Already signed in? Straight to the gallery. Otherwise, if we arrived via a
 // magic link, log in for them so they never have to type the code.
+const REDIRECT_KEY = 'lw-post-auth-redirects';
 fetch('/api/me').then((r) => {
-  if (r.ok) return location.replace('/');
+  if (r.ok) {
+    // Authed, but the server still served the login page: on iOS Safari a
+    // freshly-set cookie reaches fetches before it reaches top-level navigations,
+    // so the post-login navigation to "/" can bounce back here. Wait a beat (lets
+    // the cookie commit) and retry, spaced and capped so it can never tight-loop
+    // ("rattle") — by the second try the cookie is there and "/" serves the app.
+    const n = +(sessionStorage.getItem(REDIRECT_KEY) || 0);
+    if (n < 4) {
+      sessionStorage.setItem(REDIRECT_KEY, String(n + 1));
+      setTimeout(() => location.replace('/'), 400);
+    }
+    return;
+  }
+  sessionStorage.removeItem(REDIRECT_KEY);
   if (magicCode) {
     input.value = magicCode.toUpperCase();
     form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
@@ -102,6 +116,9 @@ async function enterGallery() {
     }
     await new Promise((r) => setTimeout(r, 250));
   }
+  // The session is live for fetches; give it a moment to also reach the
+  // navigation cookie jar (iOS) before the top-level navigation to "/".
+  await new Promise((r) => setTimeout(r, 300));
   location.replace('/');
 }
 
