@@ -64,7 +64,7 @@ export default {
     loadError: 'Could not load the gallery — check your connection and refresh.',
     newBanner: (n) => `✨ ${n} new ${n === 1 ? 'memory' : 'memories'} since your last visit — tap to see`,
     livePill: (n) => `✨ ${n} new — tap to see`,
-    pinnedHeader: '✦ Pinned',
+    pinnedHeader: 'Pinned',
     everyoneHeader: 'Everyone’s photos & videos',
     nPhotos: (n) => `${n} photo${n === 1 ? '' : 's'}`,
     nVideos: (n) => `${n} video${n === 1 ? '' : 's'}`,

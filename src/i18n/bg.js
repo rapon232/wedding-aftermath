@@ -12,7 +12,7 @@ export default {
     headTitle: '#LoveWins. Сватбена следа',
     loginHeadTitle: 'Вход — #LoveWins. Сватбена следа',
     ogTitle: '♠ #LoveWins. Сватбена следа',
-    ogDesc: 'Надникни ;)',
+    ogDesc: 'Надникни в албума ;)',
     ogImageAlt: 'Сватбата в София',
   },
 
@@ -62,7 +62,7 @@ export default {
     loadError: 'Галерията не се зареди — провери връзката и опресни.',
     newBanner: (n) => `✨ ${n} ${n === 1 ? 'нов спомен' : 'нови спомена'} от последното ти посещение — виж`,
     livePill: (n) => `✨ ${n} нови — виж`,
-    pinnedHeader: '✦ Закачени',
+    pinnedHeader: 'Избрани кадри',
     everyoneHeader: 'Снимки и видеа от всички',
     nPhotos: (n) => `${n} ${n === 1 ? 'снимка' : 'снимки'}`,
     nVideos: (n) => `${n} ${n === 1 ? 'видео' : 'видеа'}`,

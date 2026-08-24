@@ -29,11 +29,19 @@
   --shadow-sm: 0 1px 4px rgba(37, 26, 22, 0.08), 0 2px 8px rgba(37, 26, 22, 0.06);
   --shadow-md: 0 4px 16px rgba(37, 26, 22, 0.12), 0 8px 28px rgba(37, 26, 22, 0.08);
   --shadow-lg: 0 8px 32px rgba(37, 26, 22, 0.14), 0 16px 48px rgba(37, 26, 22, 0.09);
+  --font-sans: 'DM Sans', sans-serif;
+}
+/* DM Sans has no Cyrillic, so on the Bulgarian site its Latin glyphs (digits!)
+   sat next to system-font Cyrillic — the lone "8" in a date looked thinner than
+   the letters around it. A system stack covers Latin, Cyrillic and digits in one
+   font, so the whole line renders consistently. */
+html[lang='bg'] {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
   background: var(--cream);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   color: var(--text);
   min-height: 100vh;
 }
@@ -56,7 +64,7 @@ h1 em {
 }
 
 .btn {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.85rem;
   font-weight: 500;
   letter-spacing: 0.03em;
@@ -206,7 +214,14 @@ h1 em {
   background: var(--cream-card);
   border: 1.5px solid var(--cream-mid);
   border-radius: 10px;
-  padding: 7px 10px;
+  /* Drop native appearance so the control sizes from padding like the buttons
+     (native selects ignore it and render shorter); re-add our own chevron. */
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 7px 30px 7px 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237e6c63' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
   cursor: pointer;
 }
 .toolbar select:focus-visible,
@@ -518,6 +533,12 @@ body.selecting .cell.selected img {
   flex: 1;
   border-top: 1.5px solid var(--cream-mid);
 }
+.grid-header-icon {
+  width: 0.85em;
+  height: 0.85em;
+  flex-shrink: 0;
+  transform: translateY(0.04em);
+}
 .cell.pinned {
   box-shadow: 0 0 0 2px var(--bordeaux-light);
 }
@@ -720,7 +741,7 @@ body.lightbox-open .wrapper {
 /* Action pills: same frosted-glass + line-icon language as the round
    close/prev/next chrome, so the whole lightbox speaks with one voice. */
 .btn-lb {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -1138,7 +1159,7 @@ body.dragging .drop-overlay {
 /* Day-group headers in the timeline */
 .day-header {
   grid-column: 1 / -1;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -1724,7 +1745,7 @@ body.selecting .cell-fav {
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
