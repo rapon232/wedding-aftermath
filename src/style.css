@@ -109,7 +109,8 @@ h1 em {
   border-radius: 100px;
   white-space: nowrap; /* never wrap/clip the tag text */
 }
-.pill-tag::before {
+.pill-tag::before,
+.pill-tag::after {
   content: '✦';
   font-size: 0.6rem;
 }
