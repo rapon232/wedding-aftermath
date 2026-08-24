@@ -228,13 +228,12 @@ h1 em {
 }
 .header-topline {
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* center the globe against the title, even when it wraps to two lines */
   justify-content: space-between;
   gap: 12px;
 }
 #langSwitch {
   flex-shrink: 0;
-  margin-top: 4px;
 }
 .header-actions {
   display: flex;
