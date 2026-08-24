@@ -9,9 +9,9 @@ export default {
   publicUrl: 'https://svatbena-sleda.mitio.tech',
 
   meta: {
-    headTitle: '#LoveWins. Споменник ♠',
-    loginHeadTitle: 'Вход — #LoveWins. Споменник',
-    ogTitle: '♠ #LoveWins. Споменник',
+    headTitle: '#LoveWins. Сватбена следа ♠',
+    loginHeadTitle: 'Вход — #LoveWins. Сватбена следа',
+    ogTitle: '♠ #LoveWins. Сватбена следа',
     ogDesc: 'Надникни ;)',
     ogImageAlt: 'Сватбата в София',
   },
@@ -24,7 +24,7 @@ export default {
   t: {
     // Header + toolbar
     brand: '#LoveWins.',
-    brandEm: 'Споменник',
+    brandEm: 'Сватбена следа',
     upload: '↑ Качи',
     leaveNote: '✍ Остави бележка',
     guests: 'Гости',
@@ -132,11 +132,11 @@ export default {
 
     // Login
     loginBrand: '#LoveWins.',
-    loginPill: 'Любимите ни хора',
-    loginSub: 'Въведи кода от поканата, за да гледаш и споделяш 🥂',
+    loginPill: 'За любимите...',
+    loginSub: 'Въведи кода, за да гледаш и споделяш 🥂',
     codeAria: 'Код за достъп',
     enterGallery: 'Влез в галерията',
-    lostCodeHtml: 'Нямаш код? Питай младоженците&nbsp;♠',
+    lostCodeHtml: 'Нямаш код? Питай младоженците&nbsp;♥️',
     checking: 'Проверка…',
     welcomeBtn: 'Добре дошли ♠',
     errEnterCode: 'Въведи кода.',
