@@ -235,10 +235,15 @@ h1 em {
 }
 #langSwitch {
   flex-shrink: 0;
-  /* Optical correction: the display-serif title's visual mass sits below its
-     geometric center (tall caps, no descenders), so a mathematically centered
-     globe reads slightly high — nudge it down to the optical center. */
-  transform: translateY(3px);
+}
+/* Optical correction, desktop only: on wide screens the title is a single line
+   and its visual mass sits below the geometric center (tall caps, no
+   descenders), so a centered globe reads high — nudge it down. On phones the
+   title wraps to two lines and true centering already looks right. */
+@media (min-width: 641px) {
+  #langSwitch {
+    transform: translateY(3px);
+  }
 }
 .header-actions {
   display: flex;
