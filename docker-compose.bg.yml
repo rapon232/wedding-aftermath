@@ -1,4 +1,4 @@
-# The Bulgarian site (bg-aftermath.mitio.tech) — Sofia wedding, 08–09.08.2026.
+# The Bulgarian site (svatbena-sleda.mitio.tech) — Sofia wedding, 08–09.08.2026.
 # Same image as the Italian site; SITE=bg picks the Bulgarian frontend and
 # SHARED_CODE switches login to shared-code self-registration (no invite emails).
 #
@@ -6,7 +6,7 @@
 # its own .env (a NEW SESSION_SECRET — never reuse the Italian one) placed next
 # to it. Data lives in its own volume; the two sites share nothing.
 #
-# Cloudflare: add public hostname bg-aftermath.mitio.tech → http://localhost:3001
+# Cloudflare: add public hostname svatbena-sleda.mitio.tech → http://localhost:3001
 services:
   aftermath-bg:
     image: ghcr.io/rapon232/wedding-aftermath:latest
@@ -26,7 +26,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
       ADMIN_NAME: ${ADMIN_NAME:-Mitio}
       EVENT_TZ: Europe/Sofia
-      PUBLIC_URL: https://bg-aftermath.mitio.tech
+      PUBLIC_URL: https://svatbena-sleda.mitio.tech
       # No RESEND_API_KEY: shared-code sites send no invite emails.
     volumes:
       - ${DATA_PATH:-./bg_wedding_aftermath_data}:/data
