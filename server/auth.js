@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { db, generateCode } from './db.js';
 import { config } from './config.js';
 import { emailConfigured, sendInvite } from './email.js';
@@ -82,7 +83,42 @@ function throttleLogin(req, res, next) {
   next();
 }
 
+// --- Post-auth handoff via a one-time URL ---
+// Safari/WKWebView (incl. in-app browsers like WhatsApp's) sync cookies set on
+// fetch responses into the *navigation* cookie jar asynchronously — sometimes
+// seconds later. Navigating to "/" right after a fetch-login therefore got the
+// login page served again (no cookie on the navigation), looping until a manual
+// refresh. The reliable pattern (same as every OAuth flow): finish auth with a
+// top-level navigation — login/register responses include a short-lived signed
+// URL; the client navigates there; the server sets the session cookie ON THAT
+// NAVIGATION RESPONSE and 302s to "/", so the nav jar is correct by construction.
+function enterToken(id) {
+  const exp = Date.now() + 60_000;
+  const mac = crypto.createHmac('sha256', config.sessionSecret).update(`${id}.${exp}`).digest('base64url');
+  return `/api/enter?t=${id}.${exp}.${mac}`;
+}
+function verifyEnterToken(t) {
+  const [id, exp, mac] = String(t || '').split('.');
+  if (!id || !exp || !mac || Date.now() > Number(exp)) return null;
+  const expect = crypto.createHmac('sha256', config.sessionSecret).update(`${id}.${exp}`).digest('base64url');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expect))) return null;
+  } catch {
+    return null;
+  }
+  return Number(id);
+}
+
 export const authRouter = express.Router();
+
+authRouter.get('/api/enter', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const id = verifyEnterToken(req.query.t);
+  const g = id ? db.prepare('SELECT id, revoked_at FROM guests WHERE id = ?').get(id) : null;
+  if (!g || g.revoked_at) return res.redirect('/login.html');
+  setSession(res, g.id);
+  res.redirect('/');
+});
 
 authRouter.post('/api/login', throttleLogin, (req, res) => {
   const code = normalizeCode(req.body?.code);
@@ -102,7 +138,7 @@ authRouter.post('/api/login', throttleLogin, (req, res) => {
   db.prepare(
     "UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL",
   ).run(guest.id);
-  res.json({ id: guest.id, name: guest.name, isAdmin: !!guest.is_admin });
+  res.json({ id: guest.id, name: guest.name, isAdmin: !!guest.is_admin, enter: enterToken(guest.id) });
 });
 
 // Shared-code self-registration: the code proved they're invited; name+email
@@ -134,7 +170,12 @@ authRouter.post('/api/register', throttleLogin, (req, res) => {
     db.prepare(
       "UPDATE guests SET activated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND activated_at IS NULL",
     ).run(existing.id);
-    return res.json({ id: existing.id, name: existing.name, isAdmin: !!existing.is_admin });
+    return res.json({
+      id: existing.id,
+      name: existing.name,
+      isAdmin: !!existing.is_admin,
+      enter: enterToken(existing.id),
+    });
   }
 
   // New face: their personal code is generated (schema wants one) but invisible —
@@ -158,7 +199,7 @@ authRouter.post('/api/register', throttleLogin, (req, res) => {
     }
   }
   setSession(res, row.id);
-  res.status(201).json({ id: row.id, name: row.name, isAdmin: false });
+  res.status(201).json({ id: row.id, name: row.name, isAdmin: false, enter: enterToken(row.id) });
 });
 
 authRouter.post('/api/logout', (_req, res) => {

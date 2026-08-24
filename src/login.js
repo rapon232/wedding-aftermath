@@ -89,7 +89,7 @@ form.addEventListener('submit', async (e) => {
         enterProfileMode();
       } else {
         await celebrate();
-        await enterGallery();
+        enterGallery(data);
       }
       return;
     }
@@ -101,25 +101,13 @@ form.addEventListener('submit', async (e) => {
   btn.textContent = t.enterGallery;
 });
 
-// Navigate to the gallery only once the session cookie is actually live. A
-// Set-Cookie from a fetch() response can lag the next top-level navigation on
-// some mobile browsers; if we navigated immediately the server would re-serve
-// the login page (it decides gallery-vs-login by the cookie) and the guest would
-// appear "bounced back", needing a manual refresh. Polling /api/me confirms the
-// cookie is being sent before we go.
-async function enterGallery() {
-  for (let i = 0; i < 12; i++) {
-    try {
-      if ((await fetch('/api/me')).ok) break;
-    } catch {
-      /* transient — retry */
-    }
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  // The session is live for fetches; give it a moment to also reach the
-  // navigation cookie jar (iOS) before the top-level navigation to "/".
-  await new Promise((r) => setTimeout(r, 300));
-  location.replace('/');
+// Enter the gallery via the server's one-time URL: the session cookie is set on
+// that top-level NAVIGATION response (then 302 → "/"), which lands it in the
+// navigation cookie jar directly. Safari/in-app browsers sync fetch-set cookies
+// into that jar lazily — navigating on the fetch cookie alone made the server
+// re-serve the login page ("rattling" until a manual refresh).
+function enterGallery(data) {
+  location.replace(data?.enter || '/');
 }
 
 // The shared code checked out — ask who this is before opening the door.
@@ -147,8 +135,9 @@ async function register() {
       body: JSON.stringify({ code: input.value.trim(), name, email }),
     });
     if (res.ok) {
+      const data = await res.json().catch(() => ({}));
       await celebrate();
-      await enterGallery();
+      enterGallery(data);
       return;
     }
     // Unmapped statuses (500, 404 mode-off, …) read as a connection problem —

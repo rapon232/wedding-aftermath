@@ -138,6 +138,30 @@ test('admin can delete an empty guest but not one with uploads, an admin, or sel
   );
 });
 
+test('post-auth handoff: enter URL sets the cookie on a navigation and redirects home', async () => {
+  const reg = await req(srv.base, 'POST', '/api/register', {
+    json: { code: 'LOVEWINS', name: 'Nav Jar', email: 'navjar@example.bg' },
+  });
+  assert.equal(reg.status, 201);
+  assert.match(reg.data.enter, /^\/api\/enter\?t=/, 'response carries the one-time enter URL');
+
+  // Navigate the enter URL WITHOUT the fetch cookie (that's the whole point).
+  const nav = await req(srv.base, 'GET', reg.data.enter);
+  assert.equal(nav.status, 302);
+  assert.equal(nav.headers.get('location'), '/');
+  const cookie = cookieFrom(nav.setCookie);
+  assert.ok(cookie, 'session cookie is set on the navigation response');
+  const me = await req(srv.base, 'GET', '/api/me', { cookie });
+  assert.equal(me.status, 200);
+  assert.equal(me.data.name, 'Nav Jar');
+
+  // Tampered/expired tokens bounce to the login page, no cookie.
+  const bad = await req(srv.base, 'GET', '/api/enter?t=1.99999999999999.forged');
+  assert.equal(bad.status, 302);
+  assert.equal(bad.headers.get('location'), '/login.html');
+  assert.equal(cookieFrom(bad.setCookie), null);
+});
+
 test('admin can rename a guest (sanitized + capitalized)', async () => {
   const mk = await req(srv.base, 'POST', '/api/admin/guests', {
     cookie: admin,
