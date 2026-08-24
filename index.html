@@ -70,9 +70,13 @@
     <div class="wrapper">
       <header class="site-header">
         <div class="header-text">
-          <h1>
-            %%t.brand%% <span class="nowrap"><em>%%t.brandEm%%</em> <span class="heart">%%suit%%</span></span>
-          </h1>
+          <div class="header-topline">
+            <h1>
+              %%t.brand%%
+              <span class="nowrap"><em>%%t.brandEm%%</em> <span class="heart">%%suit%%</span></span>
+            </h1>
+            <div id="langSwitch"></div>
+          </div>
           <p id="welcome" class="header-sub"></p>
         </div>
         <div class="header-actions">
@@ -80,7 +84,6 @@
           <button id="noteBtn" class="btn btn-ghost">%%t.leaveNote%%</button>
           <button id="adminBtn" class="btn btn-ghost" hidden>%%t.guests%%</button>
           <button id="logoutBtn" class="btn btn-ghost">%%t.signOut%%</button>
-          <div id="langSwitch"></div>
         </div>
       </header>
 

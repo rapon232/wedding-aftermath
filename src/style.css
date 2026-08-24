@@ -221,6 +221,21 @@ h1 em {
   color: var(--text-muted);
   margin-top: 4px;
 }
+/* Title spans the full first row so the actions drop below it; the language
+   globe rides that row at the far right, aligned with the title. */
+.header-text {
+  flex: 1 1 100%;
+}
+.header-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+#langSwitch {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
 .header-actions {
   display: flex;
   gap: 8px;
