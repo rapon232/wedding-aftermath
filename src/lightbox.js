@@ -237,6 +237,14 @@ function build() {
   overlay.addEventListener(
     'touchstart',
     (e) => {
+      // Native video controls live in the video's shadow DOM, so dragging the
+      // scrubber reports the <video> as the target. Let it own that gesture —
+      // otherwise a seek drag reads as a horizontal swipe and skips to the next
+      // item. Navigation on a video stays available via the ‹ › arrows.
+      if (e.target.closest('video')) {
+        touch = null;
+        return;
+      }
       touch =
         e.touches.length === 1
           ? { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null, dy: 0 }
