@@ -3,6 +3,9 @@
 // answers { needProfile: true }, we ask for name + email, and /api/register
 // creates-or-resumes the guest (matched by email) and starts the session.
 import SITE, { t } from './site.js';
+import { initLangSwitcher } from './lang.js';
+
+initLangSwitcher(document.getElementById('langSwitch'));
 
 const form = document.getElementById('loginForm');
 const input = document.getElementById('codeInput');

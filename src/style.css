@@ -114,6 +114,81 @@ h1 em {
   font-size: 0.6rem;
 }
 
+/* Language switcher (globe + EN/БГ menu) */
+.lang-switch {
+  position: relative;
+  display: inline-flex;
+}
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1.5px solid var(--cream-mid);
+  border-radius: 100px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lang-btn:hover {
+  border-color: var(--mint);
+  color: var(--mint-dark);
+  background: var(--mint-pale);
+}
+.lang-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
+  background: var(--cream-card);
+  border: 1.5px solid var(--cream-mid);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 5px;
+  gap: 2px;
+}
+.lang-item {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.lang-item:hover {
+  background: var(--mint-pale);
+  color: var(--mint-dark);
+}
+.lang-item.active {
+  color: var(--bordeaux);
+  font-weight: 700;
+}
+/* On the login card, center the switcher under the help line. */
+.login-card .lang-switch {
+  margin-top: 4px;
+}
+.login-card .lang-menu {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-muted);

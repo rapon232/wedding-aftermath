@@ -86,6 +86,19 @@ app.use(socialRouter);
 
 // Production: serve the built frontend. In dev, Vite serves pages and proxies /api here.
 if (fs.existsSync(config.distDir)) {
+  // Every image ships both dist/en and dist/bg. A page defaults to the site's
+  // native language, but a `lang` cookie (set by the in-page switcher) overrides
+  // it — so a guest can read either site in their preferred language, remembered
+  // across visits. Assets are content-hashed per build and root files (icons,
+  // og-image, manifest) differ per language, so we resolve the whole dist dir
+  // per request rather than mounting both.
+  const distRoot = path.dirname(config.distDir);
+  const langs = ['en', 'bg'].filter((l) => fs.existsSync(path.join(distRoot, l)));
+  const distFor = (req) => {
+    const l = req.cookies?.lang;
+    return l && langs.includes(l) ? path.join(distRoot, l) : config.distDir;
+  };
+
   // HTML must revalidate on every visit (a stale shell references hashed assets
   // that stop existing after a redeploy); hashed /assets/ files never change for
   // a given name, so browsers and Cloudflare may cache them forever.
@@ -94,25 +107,27 @@ if (fs.existsSync(config.distDir)) {
   // NOT a redirect, so link-preview scrapers (which often don't follow 302s) still
   // read the Open Graph tags on login.html.
   app.get(['/', '/index.html'], (req, res) => {
-    res.sendFile(path.join(config.distDir, req.guest ? 'index.html' : 'login.html'), noCache);
+    res.sendFile(path.join(distFor(req), req.guest ? 'index.html' : 'login.html'), noCache);
   });
   // Bare /favicon.ico (requested by browsers regardless of <link>) — serve the icon,
   // don't let it fall through to the auth gate and return HTML.
-  app.get('/favicon.ico', (_req, res) => res.sendFile(path.join(config.distDir, 'favicon-32.png')));
-  app.use(
-    express.static(config.distDir, {
-      setHeaders: (res, filePath) => {
-        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
-          res.set('Cache-Control', 'public, max-age=31536000, immutable');
-        } else if (filePath.endsWith('.html')) {
-          res.set('Cache-Control', 'no-cache');
-        }
-      },
-    }),
-  );
+  app.get('/favicon.ico', (req, res) => res.sendFile(path.join(distFor(req), 'favicon-32.png')));
+  const staticOpts = {
+    setHeaders: (res, filePath) => {
+      if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (filePath.endsWith('.html')) {
+        res.set('Cache-Control', 'no-cache');
+      }
+      // Per-language root files (icons, og-image) mustn't be shared across the
+      // two builds by a cache; vary on the cookie that chose them.
+      res.set('Vary', 'Cookie');
+    },
+  };
+  app.use((req, res, next) => express.static(distFor(req), staticOpts)(req, res, next));
   const gate = (req, res, next) => (req.guest ? next() : res.redirect('/login.html'));
-  app.get(/^\/(?!api\/|media\/).*/, gate, (_req, res) => {
-    res.sendFile(path.join(config.distDir, 'index.html'), noCache);
+  app.get(/^\/(?!api\/|media\/).*/, gate, (req, res) => {
+    res.sendFile(path.join(distFor(req), 'index.html'), noCache);
   });
 }
 

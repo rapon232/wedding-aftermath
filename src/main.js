@@ -6,6 +6,7 @@ import { initGallery, reload, maybeOpenFromHash } from './gallery.js';
 import { initAdmin } from './admin.js';
 import { initNotes } from './notes.js';
 import SITE, { t } from './site.js';
+import { initLangSwitcher } from './lang.js';
 
 const getMe = () =>
   fetch('/api/me')
@@ -38,6 +39,7 @@ async function init() {
     location.replace('/login.html');
   });
 
+  initLangSwitcher(document.getElementById('langSwitch'));
   initGallery(me);
   if (me.isAdmin) initAdmin(document.getElementById('adminBtn'), me);
 
