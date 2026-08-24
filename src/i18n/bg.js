@@ -132,7 +132,7 @@ export default {
 
     // Login
     loginBrand: '#LoveWins.',
-    loginPill: 'За любимите...',
+    loginPill: 'За любимите ни хора',
     loginSub: 'Въведи кода, за да гледаш и споделяш 🥂',
     codeAria: 'Код за достъп',
     enterGallery: 'Влез в галерията',
