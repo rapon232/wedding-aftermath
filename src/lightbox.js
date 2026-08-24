@@ -1,6 +1,7 @@
 // Lightbox: full-screen viewer with keyboard/swipe navigation, video playback,
 // caption, download and (own/admin) delete.
 import { t } from './site.js';
+import { lockScroll, unlockScroll } from './scroll-lock.js';
 
 let me;
 let fmtDate = (x) => x;
@@ -66,7 +67,7 @@ export function openLightbox(items, index, o = {}) {
   if (!overlay) build();
   overlay.hidden = false;
   setImmersive(false); // reopen always starts with chrome visible
-  document.body.classList.add('lightbox-open');
+  lockScroll();
   setThemeColor('#1a0d11'); // match the lightbox backdrop
   show();
 }
@@ -961,7 +962,7 @@ async function togglePin() {
 function close() {
   overlay.hidden = true;
   overlay.querySelector('.lb-stage').innerHTML = ''; // stops video playback
-  document.body.classList.remove('lightbox-open');
+  unlockScroll(); // restores the pre-open scroll; returnToTile below then re-centers
   setThemeColor('#f7f3ee'); // back to the page background
   setComments(false);
   // After the body scroll-lock drops (scrolling is a no-op while overflow is

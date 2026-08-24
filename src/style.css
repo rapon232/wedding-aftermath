@@ -680,6 +680,15 @@ body.selecting .cell.selected img {
 
 /* --- Lightbox --- */
 body.lightbox-open {
+  /* position:fixed is the only scroll lock iOS Safari honours (overflow:hidden
+     is ignored there, and stray visual-viewport offsets — e.g. after the
+     keyboard — shifted the fixed overlay so it opened half-scrolled). The
+     negative `top` set by scroll-lock.js keeps the page visually in place;
+     unlock restores the scroll position. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
   overflow: hidden;
   /* iOS Safari leaves occasional subpixel seams at the composited overlay's
      edges. Hide the gallery outright (visibility keeps layout + scroll

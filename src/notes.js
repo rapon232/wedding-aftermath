@@ -2,6 +2,7 @@
 // can read them. Leaving a note plays a little ♥ burst, like signing in.
 
 import SITE, { t } from './site.js';
+import { lockScroll, unlockScroll } from './scroll-lock.js';
 
 let me;
 let fmtDate = (x) => x;
@@ -17,7 +18,7 @@ export function initNotes(button, user, dateFmt) {
 function open() {
   if (!panel) build();
   panel.hidden = false;
-  document.body.classList.add('lightbox-open');
+  lockScroll();
   resetComposer();
   if (me.isAdmin) refresh(); // only the couple reads the wall
   setTimeout(() => panel.querySelector('.note-input')?.focus(), 50);
@@ -25,7 +26,7 @@ function open() {
 
 function close() {
   panel.hidden = true;
-  document.body.classList.remove('lightbox-open');
+  unlockScroll();
 }
 
 function build() {

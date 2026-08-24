@@ -2,6 +2,7 @@
 // grant/revoke admin, revoke access, and send each guest their invite email.
 
 import { t } from './site.js';
+import { lockScroll, unlockScroll } from './scroll-lock.js';
 
 let panel = null;
 let guests = [];
@@ -16,13 +17,13 @@ export function initAdmin(button, user) {
 function open() {
   if (!panel) build();
   panel.hidden = false;
-  document.body.classList.add('lightbox-open'); // reuse scroll lock
+  lockScroll();
   refresh();
 }
 
 function close() {
   panel.hidden = true;
-  document.body.classList.remove('lightbox-open');
+  unlockScroll();
 }
 
 function build() {
