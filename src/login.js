@@ -28,6 +28,21 @@ fetch('/api/me').then((r) => {
   }
 });
 
+// Capitalize each word of the name as it's typed. The server does this too (it's
+// the source of truth), but doing it live gives guests visible feedback — they
+// can't rely on the field's own casing cues. Only the first letter of each word
+// is touched, so length is preserved (cursor stays put) and intentional caps
+// like "McArthur" survive.
+const capitalizeWords = (s) => s.replace(/(^|[\s-])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+nameInput.addEventListener('input', () => {
+  const pos = nameInput.selectionStart;
+  const capped = capitalizeWords(nameInput.value);
+  if (capped !== nameInput.value) {
+    nameInput.value = capped;
+    nameInput.setSelectionRange(pos, pos);
+  }
+});
+
 // Auto-format as XXXX-XXXX while typing.
 input.addEventListener('input', () => {
   const raw = input.value
@@ -57,7 +72,7 @@ form.addEventListener('submit', async (e) => {
         enterProfileMode();
       } else {
         await celebrate();
-        location.replace('/');
+        await enterGallery();
       }
       return;
     }
@@ -68,6 +83,24 @@ form.addEventListener('submit', async (e) => {
   btn.disabled = false;
   btn.textContent = t.enterGallery;
 });
+
+// Navigate to the gallery only once the session cookie is actually live. A
+// Set-Cookie from a fetch() response can lag the next top-level navigation on
+// some mobile browsers; if we navigated immediately the server would re-serve
+// the login page (it decides gallery-vs-login by the cookie) and the guest would
+// appear "bounced back", needing a manual refresh. Polling /api/me confirms the
+// cookie is being sent before we go.
+async function enterGallery() {
+  for (let i = 0; i < 12; i++) {
+    try {
+      if ((await fetch('/api/me')).ok) break;
+    } catch {
+      /* transient — retry */
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  location.replace('/');
+}
 
 // The shared code checked out — ask who this is before opening the door.
 function enterProfileMode() {
@@ -95,7 +128,7 @@ async function register() {
     });
     if (res.ok) {
       await celebrate();
-      location.replace('/');
+      await enterGallery();
       return;
     }
     // Unmapped statuses (500, 404 mode-off, …) read as a connection problem —

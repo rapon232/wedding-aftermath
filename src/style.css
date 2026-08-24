@@ -40,7 +40,7 @@ body {
 
 h1,
 h2 {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   font-weight: 400;
   color: var(--bordeaux-dark);
 }
@@ -97,7 +97,7 @@ h1 em {
   color: var(--mint-dark);
   background: var(--mint-pale);
   border: 1px solid var(--mint-light);
-  padding: 4px 14px 4px 12px;
+  padding: 5px 20px 5px 18px;
   border-radius: 100px;
 }
 .pill-tag::before {
@@ -677,7 +677,7 @@ body.lightbox-open .wrapper {
   transition: opacity 0.2s;
 }
 .lb-by {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   font-style: italic;
   font-size: 1.05rem;
   color: #f7f3ee;
@@ -757,7 +757,10 @@ body.lightbox-open .wrapper {
 }
 /* Shared-code login, step 2: name/email fields reuse the code input's shell but
    read as normal text, not an access code. */
-.profile-input {
+/* Two classes, equal specificity — qualify with .code-input so these win over
+   it regardless of source order (else the name/email fields inherit the code
+   field's ALL-CAPS and guests can't see their real capitalization). */
+.code-input.profile-input {
   font-family: inherit;
   font-size: 17px;
   letter-spacing: normal;
@@ -855,7 +858,7 @@ body.lightbox-open .wrapper {
   opacity: 0.55;
 }
 .lb-live-who {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   font-style: italic;
   margin-right: 6px;
   color: #f7f3ee;
@@ -1019,7 +1022,7 @@ body.dragging .drop-overlay {
   display: flex;
 }
 .drop-overlay-inner {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   font-size: 1.5rem;
   color: var(--mint-dark);
   background: var(--cream-card);
@@ -1465,7 +1468,7 @@ body.selecting .cell-fav {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px 8px;
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   color: var(--bordeaux-dark);
 }
 .lb-comments-close {
@@ -1647,7 +1650,7 @@ body.selecting .cell-fav {
   font-size: 0.74rem;
 }
 .note-meta span:first-child {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   font-style: italic;
   color: var(--bordeaux);
 }
@@ -1686,7 +1689,7 @@ body.selecting .cell-fav {
   padding: 24px 8px 12px;
 }
 .note-thanks-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'DM Serif Display', 'Playfair Display', serif;
   font-size: 1.6rem;
   color: var(--bordeaux-dark);
 }

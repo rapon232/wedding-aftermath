@@ -94,6 +94,14 @@ test('register strips control and bidi characters from names', async () => {
   assert.equal(r.data.name, 'Zara LineBreak');
 });
 
+test('register capitalizes each word of the name', async () => {
+  const r = await req(srv.base, 'POST', '/api/register', {
+    json: { code: 'LOVEWINS', name: 'иван петров-стоянов', email: 'ivan@example.bg' },
+  });
+  assert.equal(r.status, 201);
+  assert.equal(r.data.name, 'Иван Петров-Стоянов');
+});
+
 test('register validates code, name, and email', async () => {
   const bad = await req(srv.base, 'POST', '/api/register', {
     json: { code: 'WRONGCODE', name: 'X', email: 'x@example.bg' },

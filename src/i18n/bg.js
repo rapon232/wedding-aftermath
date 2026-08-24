@@ -9,7 +9,7 @@ export default {
   publicUrl: 'https://svatbena-sleda.mitio.tech',
 
   meta: {
-    headTitle: '#LoveWins. Сватбена следа ♠',
+    headTitle: '#LoveWins. Сватбена следа',
     loginHeadTitle: 'Вход — #LoveWins. Сватбена следа',
     ogTitle: '♠ #LoveWins. Сватбена следа',
     ogDesc: 'Надникни ;)',
@@ -26,7 +26,7 @@ export default {
     brand: '#LoveWins.',
     brandEm: 'Сватбена следа',
     upload: '↑ Качи',
-    leaveNote: '✍ Остави бележка',
+    leaveNote: '✍ Изпрати писмо',
     guests: 'Гости',
     signOut: 'Изход',
     all: 'Всички',
@@ -55,9 +55,9 @@ export default {
 
     // Gallery
     welcome: (name) =>
-      `Здравей, ${name}! Сподели снимките и видеата си от сватбата ни — искаме да видим партито през твоите очи 🔥`,
+      `Здравей, ${name}! Сподели снимките и видеата си от сватбата ни, искаме да видим партито през твоите очи 🔥`,
     loading: 'Зареждане…',
-    emptyGallery: 'Още няма спомени — бъди първи и сподели деня ♠',
+    emptyGallery: 'Още няма спомени, бъди първи и сподели деня ♥️',
     emptyLoved: 'Още няма любими — докосни ♥ на снимките, които харесваш.',
     loadError: 'Галерията не се зареди — провери връзката и опресни.',
     newBanner: (n) => `✨ ${n} ${n === 1 ? 'нов спомен' : 'нови спомена'} от последното ти посещение — виж`,

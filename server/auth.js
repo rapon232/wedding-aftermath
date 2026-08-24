@@ -102,7 +102,9 @@ authRouter.post('/api/register', throttleLogin, (req, res) => {
     // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1f\u200b-\u200f\u202a-\u202e]/g, '')
     .trim()
-    .slice(0, 80);
+    .slice(0, 80)
+    // Capitalize each word (the field shows uppercase, so guests can't self-check).
+    .replace(/(^|[\s-])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
   const email = String(req.body?.email || '')
     .trim()
     .toLowerCase();
