@@ -10,7 +10,7 @@
 services:
   aftermath-bg:
     image: ghcr.io/rapon232/wedding-aftermath:latest
-    container_name: wedding_aftermath_bg
+    container_name: bg_wedding_aftermath
     restart: unless-stopped
     pull_policy: always
     ports:
@@ -29,4 +29,4 @@ services:
       PUBLIC_URL: https://bg.aftermath.mitio.tech
       # No RESEND_API_KEY: shared-code sites send no invite emails.
     volumes:
-      - ${DATA_PATH:-./wedding_aftermath_bg_data}:/data
+      - ${DATA_PATH:-./bg_wedding_aftermath_data}:/data
