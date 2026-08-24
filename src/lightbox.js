@@ -53,6 +53,12 @@ export function initLightbox(config) {
   onRotated = config.onRotated || (() => {});
 }
 
+// The browser's status-bar band follows the theme-color meta: cream to blend
+// with the page normally, the lightbox's dark backdrop while it's open.
+function setThemeColor(color) {
+  for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.content = color;
+}
+
 export function openLightbox(items, index, o = {}) {
   list = items;
   idx = index;
@@ -61,6 +67,7 @@ export function openLightbox(items, index, o = {}) {
   overlay.hidden = false;
   setImmersive(false); // reopen always starts with chrome visible
   document.body.classList.add('lightbox-open');
+  setThemeColor('#1a0d11'); // match the lightbox backdrop
   show();
 }
 
@@ -955,6 +962,7 @@ function close() {
   overlay.hidden = true;
   overlay.querySelector('.lb-stage').innerHTML = ''; // stops video playback
   document.body.classList.remove('lightbox-open');
+  setThemeColor('#f7f3ee'); // back to the page background
   setComments(false);
   // After the body scroll-lock drops (scrolling is a no-op while overflow is
   // hidden), let the gallery re-center on the item we left off at — before
