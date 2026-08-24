@@ -117,6 +117,27 @@ test('register validates code, name, and email', async () => {
   assert.equal(noEmail.status, 400);
 });
 
+test('admin can delete an empty guest but not one with uploads, an admin, or self', async () => {
+  // A fresh self-registered guest with no uploads → deletable.
+  const reg = await req(srv.base, 'POST', '/api/register', {
+    json: { code: 'LOVEWINS', name: 'Deletable Guest', email: 'del@example.bg' },
+  });
+  const cookie = cookieFrom(reg.setCookie);
+  const meRow = await req(srv.base, 'GET', '/api/me', { cookie });
+  const gid = meRow.data.id;
+  const del = await req(srv.base, 'DELETE', `/api/admin/guests/${gid}`, { cookie: admin });
+  assert.equal(del.status, 200);
+  const list = await req(srv.base, 'GET', '/api/admin/guests', { cookie: admin });
+  assert.ok(!list.data.some((g) => g.id === gid), 'guest is gone');
+
+  // Deleting yourself and deleting an admin are both refused.
+  const meAdmin = await req(srv.base, 'GET', '/api/me', { cookie: admin });
+  assert.equal(
+    (await req(srv.base, 'DELETE', `/api/admin/guests/${meAdmin.data.id}`, { cookie: admin })).status,
+    400,
+  );
+});
+
 test('classic mode: register is 404 and shared code is rejected at login', async () => {
   const classic = await spawnServer();
   try {

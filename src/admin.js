@@ -157,6 +157,20 @@ function row(g) {
   });
   actionsTd.appendChild(revokeBtn);
 
+  // Delete — only for accounts safe to remove: not you, not an admin, and with
+  // no uploads (deleting someone with photos is what Revoke is for).
+  if (g.id !== me.id && !g.is_admin && !g.media_count) {
+    const delBtn = mkBtn(t.delete, async () => {
+      if (!confirm(t.confirmDeleteGuest(g.name))) return;
+      const r = await fetch(`/api/admin/guests/${g.id}`, { method: 'DELETE' });
+      if (r.ok) flash(t.deletedGuest(g.name));
+      else flash((await r.json().catch(() => ({}))).error || t.actionFailed);
+      refresh();
+    });
+    delBtn.classList.add('btn-danger');
+    actionsTd.appendChild(delBtn);
+  }
+
   tr.append(dotTd, nameTd, emailTd, codeTd, countTd, actionsTd);
   return tr;
 }

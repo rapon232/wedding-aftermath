@@ -148,6 +148,8 @@ export default {
     errName: 'Please enter your name.',
     errEmail: 'Please enter a valid email.',
     errRevoked: 'This code’s access has been revoked.',
+    regPrivacy:
+      'This site and everything on it is hosted on the couple’s own private server, so your data and photos stay safe 😎',
 
     // Admin panel
     adminTitleHtml: 'Guests &amp; invites',
@@ -190,5 +192,7 @@ export default {
     importedGuests: (n, skipped) =>
       `Imported ${n} guest${n === 1 ? '' : 's'}${skipped ? `, skipped ${skipped}` : ''}`,
     copiedList: 'Copied full list',
+    confirmDeleteGuest: (name) => `Permanently delete ${name}? This cannot be undone.`,
+    deletedGuest: (name) => `Deleted ${name}`,
   },
 };

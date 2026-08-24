@@ -267,6 +267,30 @@ authRouter.post('/api/admin/guests/:id/restore', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// Permanently remove a guest (for duplicates / test / spam accounts). Refuses to
+// touch admins, yourself, or anyone who has uploaded media — deleting a guest
+// with photos would mean deleting the photos, which Revoke exists to avoid. Their
+// comments/notes/reactions/seen rows go with them (reactions & seen cascade;
+// comments & notes are RESTRICT-referenced, so we clear them in the same tx).
+const deleteGuest = db.transaction((id) => {
+  db.prepare('DELETE FROM media_comments WHERE guest_id = ?').run(id);
+  db.prepare('DELETE FROM notes WHERE guest_id = ?').run(id);
+  db.prepare('DELETE FROM guests WHERE id = ?').run(id);
+});
+authRouter.delete('/api/admin/guests/:id', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (id === req.guest.id) return res.status(400).json({ error: 'cannot delete yourself' });
+  const g = db.prepare('SELECT id, is_admin FROM guests WHERE id = ?').get(id);
+  if (!g) return res.status(404).json({ error: 'not found' });
+  if (g.is_admin) return res.status(400).json({ error: 'demote this admin before deleting' });
+  const uploads = db.prepare('SELECT COUNT(*) AS n FROM media WHERE uploader_id = ?').get(id).n;
+  if (uploads > 0) {
+    return res.status(400).json({ error: `guest has ${uploads} upload(s) — revoke instead of deleting` });
+  }
+  deleteGuest(id);
+  res.json({ ok: true });
+});
+
 // Grant / revoke admin. Won't remove the last remaining admin (lock-out guard).
 authRouter.post('/api/admin/guests/:id/admin', requireAdmin, (req, res) => {
   const id = Number(req.params.id);
