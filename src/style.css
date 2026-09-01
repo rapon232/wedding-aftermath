@@ -1299,6 +1299,17 @@ body.dragging .drop-overlay {
   margin: 14px 2px 2px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--cream-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.day-header .sec-toggle svg {
+  width: 12px; /* subsection arrows are a size down from the section ones */
+  height: 12px;
+}
+.day-header.collapsed .sec-toggle svg {
+  transform: rotate(-90deg);
 }
 .day-header:first-child {
   margin-top: 0;

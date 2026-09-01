@@ -227,6 +227,7 @@ function updateClearBtn() {
 }
 
 function clearFilters() {
+  collapsedDays.clear(); // back to the default view: everything unfolds
   state.sort = 'taken-desc';
   state.type = '';
   state.uploader = '';
@@ -447,6 +448,7 @@ function eventLabel(iso) {
 }
 
 let pinnedCollapsed = false; // survives grid reloads this session; "new photos" banners auto-fold
+const collapsedDays = new Set(); // folded day sub-sections (by label); cleared by "Clear filters"
 
 // Monochrome pushpin (inherits the header colour) for the pinned section.
 const PIN_SVG =
@@ -496,6 +498,24 @@ function setPinnedCollapsed(on) {
   applyPinnedCollapsed();
 }
 
+// Fold/unfold one day group: hide its cells up to the next day/section header.
+function setDayCollapsed(label, on) {
+  if (on) collapsedDays.add(label);
+  else collapsedDays.delete(label);
+  for (const h of grid().querySelectorAll('.day-header')) {
+    if (h.dataset.day !== label) continue;
+    h.classList.toggle('collapsed', on);
+    h.querySelector('.sec-toggle')?.setAttribute('aria-expanded', String(!on));
+    for (
+      let el = h.nextElementSibling;
+      el && !el.classList.contains('day-header') && !el.classList.contains('grid-header');
+      el = el.nextElementSibling
+    ) {
+      el.hidden = on;
+    }
+  }
+}
+
 function appendItems(newItems, grouped) {
   const frag = document.createDocumentFragment();
   for (const item of newItems) {
@@ -505,13 +525,26 @@ function appendItems(newItems, grouped) {
         lastDayLabel = label;
         const h = document.createElement('h3');
         h.className = 'day-header';
-        h.textContent = label + eventLabel(item.taken_at);
+        h.dataset.day = label;
+        const txt = document.createElement('span');
+        txt.textContent = label + eventLabel(item.taken_at);
+        const btn = document.createElement('button');
+        btn.className = 'sec-toggle';
+        btn.innerHTML = CHEVRON_SVG;
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('aria-expanded', String(!collapsedDays.has(label)));
+        btn.addEventListener('click', () => setDayCollapsed(label, !collapsedDays.has(label)));
+        h.append(txt, btn);
+        if (collapsedDays.has(label)) h.classList.add('collapsed');
         frag.appendChild(h);
       }
     }
     const index = items.length;
     items.push(item);
-    frag.appendChild(cell(item, index));
+    const c = cell(item, index);
+    // Infinite scroll can append into a day the guest folded — keep it folded.
+    if (grouped && inEveryoneSection && collapsedDays.has(lastDayLabel)) c.hidden = true;
+    frag.appendChild(c);
   }
   grid().appendChild(frag);
 }

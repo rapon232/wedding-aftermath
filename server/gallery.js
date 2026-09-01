@@ -61,8 +61,10 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
   const limit = Math.min(Math.max(1, Math.trunc(Number(req.query.limit)) || PAGE_DEFAULT), PAGE_MAX);
   const gid = req.guest.id;
 
-  // Base filters (status + type/uploader) apply to the paginated list, the pinned
-  // set, and the totals alike.
+  // Base filters (status + type/uploader) apply to the paginated list and the
+  // totals. The pinned set deliberately ignores type/uploader: it's curated,
+  // site-wide content — filtering used to make the whole section vanish; now it
+  // always renders and the client folds it out of the way on filtered views.
   const base = ["m.status = 'ready'"];
   const baseParams = [];
   if (req.query.uploader) {
@@ -140,10 +142,10 @@ galleryRouter.get('/api/media', requireApi, (req, res) => {
     body.pinned = db
       .prepare(
         `SELECT ${cols} FROM media m JOIN guests g ON g.id = m.uploader_id
-         WHERE ${base.join(' AND ')} AND m.pinned_at IS NOT NULL
+         WHERE m.status = 'ready' AND m.pinned_at IS NOT NULL
          ORDER BY m.pinned_at ASC, m.id ASC`,
       )
-      .all(gid, gid, ...baseParams);
+      .all(gid, gid);
     attachCommentPreviews(body.pinned);
     const totals = db
       .prepare(`SELECT m.type, COUNT(*) AS n FROM media m WHERE ${base.join(' AND ')} GROUP BY m.type`)
