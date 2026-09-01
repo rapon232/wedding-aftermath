@@ -629,6 +629,31 @@ body.selecting .cell.selected img {
   content: '';
   flex: 1;
   border-top: 1.5px solid var(--cream-mid);
+  order: 1; /* the line sits between the label and the fold arrow */
+}
+/* Mini fold arrow at the right end of the section line */
+.sec-toggle {
+  order: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+.sec-toggle:hover {
+  color: var(--bordeaux);
+}
+.sec-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.18s;
+}
+.grid-header.collapsed .sec-toggle svg {
+  transform: rotate(-90deg);
 }
 .grid-header-icon {
   width: 0.85em;

@@ -141,6 +141,7 @@ function showLivePill() {
     el.className = 'live-pill';
     el.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      pinnedCollapsed = true; // the guest came for the NEW photos — don't land them on pins
       reload();
     });
     document.body.appendChild(el);
@@ -387,9 +388,10 @@ async function loadPage(first = false) {
 
     const grouped = state.sort.startsWith('taken');
     if (first && data.pinned?.length) {
-      addSectionHeader(t.pinnedHeader, PIN_SVG);
+      addSectionHeader(t.pinnedHeader, PIN_SVG, true);
       appendItems(data.pinned, false);
       addSectionHeader(t.everyoneHeader);
+      applyPinnedCollapsed(); // re-apply a fold that survived the reload
     }
     inEveryoneSection = true;
     appendItems(data.items, grouped);
@@ -437,11 +439,16 @@ function eventLabel(iso) {
   return SITE.days[day] || '';
 }
 
+let pinnedCollapsed = false; // survives grid reloads this session; "new photos" banners auto-fold
+
 // Monochrome pushpin (inherits the header colour) for the pinned section.
 const PIN_SVG =
   '<svg class="grid-header-icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path fill="currentColor" d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg>';
 
-function addSectionHeader(text, iconHtml = '') {
+const CHEVRON_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+function addSectionHeader(text, iconHtml = '', foldable = false) {
   const h = document.createElement('h2');
   h.className = 'grid-header';
   if (iconHtml) {
@@ -450,7 +457,36 @@ function addSectionHeader(text, iconHtml = '') {
   } else {
     h.textContent = text;
   }
+  if (foldable) {
+    h.dataset.section = 'pinned';
+    const btn = document.createElement('button');
+    btn.className = 'sec-toggle';
+    btn.innerHTML = CHEVRON_SVG;
+    btn.setAttribute('aria-label', text);
+    btn.addEventListener('click', () => setPinnedCollapsed(!pinnedCollapsed));
+    h.appendChild(btn);
+  }
   grid().appendChild(h);
+}
+
+// Fold/unfold the pinned section: hide everything between its header and the
+// next section header. State lives in pinnedCollapsed so it survives reloads.
+function applyPinnedCollapsed() {
+  const h = grid().querySelector('.grid-header[data-section="pinned"]');
+  if (!h) return;
+  h.classList.toggle('collapsed', pinnedCollapsed);
+  h.querySelector('.sec-toggle')?.setAttribute('aria-expanded', String(!pinnedCollapsed));
+  for (
+    let el = h.nextElementSibling;
+    el && !el.classList.contains('grid-header');
+    el = el.nextElementSibling
+  ) {
+    el.hidden = pinnedCollapsed;
+  }
+}
+function setPinnedCollapsed(on) {
+  pinnedCollapsed = on;
+  applyPinnedCollapsed();
 }
 
 function appendItems(newItems, grouped) {
@@ -668,6 +704,7 @@ function showNewBanner(n) {
       bar.hidden = true;
       state.sort = 'uploaded-desc';
       document.getElementById('sortSel').value = 'uploaded-desc';
+      pinnedCollapsed = true; // the guest came for the NEW photos — fold the pins out of the way
       syncUrl();
       updateClearBtn();
       reload();
