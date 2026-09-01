@@ -213,8 +213,15 @@ function syncUrl() {
 }
 
 // Show "Clear filters" only when something is actually filtered/re-sorted.
+let viewWasFiltered = false;
 function updateClearBtn() {
   const active = state.sort !== 'taken-desc' || !!state.type || !!state.uploader;
+  // Edge-triggered auto-fold: ENTERING a filtered/sorted view folds the pins
+  // (the guest is on a mission; curated pins are in the way), RETURNING to the
+  // default view unfolds them. Only the transition acts, so a manual toggle
+  // holds for as long as the view kind doesn't change.
+  if (active !== viewWasFiltered) setPinnedCollapsed(active);
+  viewWasFiltered = active;
   const btn = document.getElementById('clearFilters');
   if (btn) btn.hidden = !active;
 }
